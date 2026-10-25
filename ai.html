@@ -1,0 +1,1927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Engineering Bootcamp</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { min-height: 100%; background: #0a0a0f; }
+    #root { min-height: 100vh; }
+  </style>
+  <!-- React 18 + Babel standalone (no build step) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useCallback, useMemo } = React;
+
+// ─── RESPONSIVE HOOK ─────────────────────────────────────────────────────────
+function useWindowSize() {
+  const [size, setSize] = useState({ w: typeof window !== "undefined" ? window.innerWidth : 1200 });
+  useEffect(() => {
+    const handler = () => setSize({ w: window.innerWidth });
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
+  return size;
+}
+
+// ─── THEME ────────────────────────────────────────────────────────────────────
+const getTheme = (dark) => dark ? {
+  bg: "#0a0d12", surface: "#111620", border: "#1e2433",
+  text: "#e2e8f4", muted: "#4a5568", sub: "#718096", card: "#131927",
+} : {
+  bg: "#f0f4ff", surface: "#ffffff", border: "#dde3ef",
+  text: "#1a202c", muted: "#a0aec0", sub: "#4a5568", card: "#f5f7ff",
+};
+
+const LEVEL_COLOR = { Beginner: "#22c55e", Intermediate: "#f59e0b", Advanced: "#ef4444", CAPSTONE: "#a855f7" };
+
+// ─── FULL LESSON CONTENT ──────────────────────────────────────────────────────
+const LESSONS = {};
+
+const LESSONS_EXTRA = {};
+
+// ─── LAB SETUP & TOOLS PER MONTH ─────────────────────────────────────────────
+const LAB_SETUP = {
+  1: {
+    title: "Python Programming Lab",
+    environment: "Local Python + Jupyter Notebook",
+    setup: [
+      "Install Python 3.10+: https://python.org/downloads",
+      "Install VS Code + Python extension + Jupyter extension",
+      "Create project folder: mkdir python-lab && cd python-lab",
+      "Create venv: python -m venv venv && source venv/bin/activate",
+      "pip install jupyter ipykernel notebook",
+      "Launch: jupyter notebook",
+    ],
+    tools: [
+      { name:"Python 3.10+",      purpose:"Runtime",                        free:true  },
+      { name:"VS Code",           purpose:"Editor for .py scripts",          free:true  },
+      { name:"Jupyter Notebook",  purpose:"Interactive exploration",          free:true  },
+      { name:"pytest",            purpose:"Testing your code (Week 4)",       free:true  },
+    ],
+    weeklyLabs: [
+      { week:1, title:"Python Fundamentals Notebook", tasks:["Create 01_basics.ipynb — variables, strings, numbers","Build a number guessing game with while loop","Write a text-based calculator with functions"] },
+      { week:2, title:"Data Structures Workshop",    tasks:["Build a contact book with dicts","Write a shopping cart with list methods","Create a word frequency counter with comprehensions"] },
+      { week:3, title:"OOP Design Lab",              tasks:["Build a BankAccount class with deposit/withdraw","Create an Animal hierarchy with inheritance","Implement a Stack class with magic methods"] },
+      { week:4, title:"Full CLI Application",        tasks:["Build a task manager CLI (add/complete/delete tasks)","Add file persistence (save/load JSON)","Write full pytest test suite, type hints throughout"] },
+    ],
+    dailyHabit: "Open Jupyter every day. Every concept → write code → run it → break it → fix it.",
+    resources: ["https://python.org/doc", "https://realpython.com", "https://leetcode.com (Easy level)"],
+  },
+  2: {
+    title: "Mathematics for AI Lab",
+    environment: "NumPy + Matplotlib in Jupyter",
+    setup: [
+      "Activate your venv from Month 1",
+      "pip install numpy matplotlib scipy sympy",
+      "Create folder: mkdir maths-lab && cd maths-lab",
+      "Each day: new notebook named e.g. 02_vectors.ipynb",
+    ],
+    tools: [
+      { name:"NumPy",      purpose:"All matrix/vector/stats operations",     free:true },
+      { name:"Matplotlib", purpose:"Visualise vectors, loss curves, distributions", free:true },
+      { name:"SciPy",      purpose:"Eigenvalues, SVD, statistical tests",    free:true },
+      { name:"SymPy",      purpose:"Symbolic maths — verify derivatives",    free:true },
+    ],
+    weeklyLabs: [
+      { week:1, title:"Linear Algebra in NumPy", tasks:["Implement dot product & matrix multiply from scratch then verify with NumPy","Visualise 2D vector addition and rotation with Matplotlib","Solve a 3×3 system Ax=b — compare np.linalg.solve vs manual inverse"] },
+      { week:2, title:"Probability & Stats Lab", tasks:["Plot all 6 key distributions (Gaussian, Binomial, Poisson…)","Simulate the Central Limit Theorem — show convergence to Gaussian","Implement Naive Bayes classifier from scratch and test on toy data"] },
+      { week:3, title:"Calculus & Gradient Lab", tasks:["Compute numerical derivative and compare to analytical — plot both","Visualise gradient descent descending a bowl-shaped loss surface","Implement chain rule for a 2-layer network forward+backward pass"] },
+      { week:4, title:"Capstone — Logistic Regression from Scratch", tasks:["Implement sigmoid, cross-entropy loss, gradient update in NumPy","Train on a linearly-separable dataset, plot decision boundary","Compare your implementation's accuracy to sklearn LogisticRegression"] },
+    ],
+    dailyHabit: "Every formula you learn → type it into NumPy → plot the result. Maths becomes real when you see it move.",
+    resources: ["https://numpy.org/doc", "https://3blue1brown.com (Essence of Linear Algebra)", "https://khanacademy.org/math"],
+  },
+  3: {
+    title: "Machine Learning Lab",
+    environment: "Scikit-learn + Pandas + Kaggle Notebooks",
+    setup: [
+      "pip install scikit-learn pandas matplotlib seaborn xgboost lightgbm optuna",
+      "Create a Kaggle account: https://kaggle.com",
+      "Download: Titanic, House Prices, Iris datasets from Kaggle",
+      "Optional: pip install shap for model explainability",
+    ],
+    tools: [
+      { name:"Scikit-learn", purpose:"All classical ML algorithms",           free:true },
+      { name:"Pandas",       purpose:"Data loading, cleaning, feature eng",   free:true },
+      { name:"XGBoost",      purpose:"Gradient boosting (Kaggle winner)",     free:true },
+      { name:"Optuna",       purpose:"Hyperparameter tuning",                 free:true },
+      { name:"SHAP",         purpose:"Model interpretability",                free:true },
+      { name:"Kaggle",       purpose:"Real datasets + competitions",          free:true },
+    ],
+    weeklyLabs: [
+      { week:1, title:"Core Algorithms Notebook", tasks:["Train LinearRegression, LogisticRegression, DecisionTree on Iris","Plot learning curves for each — spot underfitting vs overfitting","Implement cross_val_score and compare all models in a table"] },
+      { week:2, title:"Feature Engineering Sprint", tasks:["Load Titanic CSV — clean missing values, encode Sex/Embarked","Engineer 3 new features: family_size, is_alone, title_from_name","Train RandomForest — get >80% accuracy on validation set"] },
+      { week:3, title:"Kaggle Competition Entry", tasks:["Join House Prices competition on Kaggle","EDA notebook: distributions, correlations, outliers","Train XGBoost + LightGBM, submit predictions, hit top 30%"] },
+      { week:4, title:"End-to-End ML Pipeline", tasks:["Build sklearn Pipeline with ColumnTransformer","Add SHAP explanations — plot top 10 most important features","Save model with joblib, write a predict() function for new data"] },
+    ],
+    dailyHabit: "One Kaggle notebook per major concept. Submit at least 3 competition entries this month.",
+    resources: ["https://kaggle.com/learn", "https://scikit-learn.org/stable/tutorial", "https://xgboost.readthedocs.io"],
+  },
+  4: {
+    title: "Deep Learning Lab",
+    environment: "TensorFlow/Keras + PyTorch + Google Colab GPU",
+    setup: [
+      "Use Google Colab (free GPU): https://colab.research.google.com",
+      "Runtime → Change runtime type → T4 GPU",
+      "Or locally: pip install tensorflow torch torchvision torchaudio",
+      "pip install tensorboard wandb",
+    ],
+    tools: [
+      { name:"Google Colab",      purpose:"Free T4 GPU for training",              free:true  },
+      { name:"TensorFlow/Keras",  purpose:"Main deep learning framework",           free:true  },
+      { name:"PyTorch",           purpose:"Research-style training loops",          free:true  },
+      { name:"TensorBoard",       purpose:"Visualise training curves",              free:true  },
+      { name:"Weights & Biases",  purpose:"Experiment tracking (free tier)",        free:true  },
+      { name:"Kaggle Notebooks",  purpose:"Free GPU + datasets",                   free:true  },
+    ],
+    weeklyLabs: [
+      { week:1, title:"First Neural Nets in Keras", tasks:["Binary classifier on breast cancer dataset — plot loss curves","Multi-class on MNIST — get >98% accuracy","Experiment: compare SGD vs Adam vs RMSprop learning curves"] },
+      { week:2, title:"CNN Vision Lab", tasks:["Train CNN on CIFAR-10 from scratch — beat 70% accuracy","Add data augmentation — see accuracy jump","Fine-tune MobileNetV2 on a custom 5-class image dataset you collect"] },
+      { week:3, title:"RNN & Transformer Lab", tasks:["LSTM sentiment classifier on IMDB — compare to logistic baseline","Implement a simple attention mechanism from scratch in PyTorch","Fine-tune DistilBERT for text classification using HuggingFace"] },
+      { week:4, title:"Generative Models Lab", tasks:["Build a simple autoencoder on MNIST — visualise latent space","Implement DCGAN — generate fake handwritten digits","Export final model to ONNX format for deployment"] },
+    ],
+    dailyHabit: "Every model: plot loss curves, check for overfit, try one regularisation fix. Never just 'run and hope'.",
+    resources: ["https://colab.research.google.com", "https://keras.io/examples", "https://pytorch.org/tutorials"],
+  },
+  5: {
+    title: "Computer Vision Lab",
+    environment: "OpenCV + PyTorch + YOLOv8 + Roboflow",
+    setup: [
+      "pip install opencv-python ultralytics roboflow albumentations",
+      "pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118",
+      "Create free Roboflow account: https://roboflow.com (dataset annotation)",
+      "Create free Hugging Face account: https://huggingface.co (deploy demos)",
+    ],
+    tools: [
+      { name:"OpenCV",       purpose:"Image processing, webcam, video",          free:true },
+      { name:"Ultralytics",  purpose:"YOLOv8 training and inference",            free:true },
+      { name:"Roboflow",     purpose:"Dataset annotation and augmentation",      free:true },
+      { name:"Albumentations",purpose:"Advanced image augmentation pipeline",    free:true },
+      { name:"HF Spaces",    purpose:"Free CV demo deployment (Gradio)",         free:true },
+      { name:"Kaggle",       purpose:"Free GPU + CV competitions",               free:true },
+    ],
+    weeklyLabs: [
+      { week:1, title:"OpenCV Foundations", tasks:["Read/write/display images, colour space conversion","Apply Gaussian blur, Canny edge detection, morphological ops","Build a real-time webcam filter using cv2.VideoCapture"] },
+      { week:2, title:"CNN & Transfer Learning", tasks:["Fine-tune ResNet50 on a custom dataset (collect 100 images, 5 classes)","Annotate your dataset with Roboflow","Evaluate with confusion matrix — identify worst-performing class"] },
+      { week:3, title:"Object Detection Lab", tasks:["Train YOLOv8 nano on a Roboflow dataset (e.g. face masks, vehicles)","Run inference on a video file — save annotated output","Evaluate mAP@50 and mAP@50-95 — understand the difference"] },
+      { week:4, title:"Full CV Production System", tasks:["Build real-time webcam detector with YOLOv8 + OpenCV","Wrap in FastAPI: POST /detect endpoint accepts image, returns boxes","Deploy Gradio demo to Hugging Face Spaces"] },
+    ],
+    dailyHabit: "Collect 10-20 real images every day for your dataset. Real data beats perfect code.",
+    resources: ["https://docs.ultralytics.com", "https://roboflow.com/learn", "https://albumentations.ai/docs"],
+  },
+  6: {
+    title: "NLP & LLM Lab",
+    environment: "HuggingFace + LangChain + Ollama (local LLMs)",
+    setup: [
+      "pip install transformers datasets tokenizers peft accelerate",
+      "pip install langchain langchain-community chromadb sentence-transformers",
+      "Install Ollama (free local LLMs): https://ollama.ai",
+      "ollama pull llama3  # or mistral, phi3 — runs locally, free forever",
+      "pip install openai  # if using OpenAI API",
+    ],
+    tools: [
+      { name:"HuggingFace transformers", purpose:"BERT, GPT2, fine-tuning",       free:true  },
+      { name:"Ollama",                   purpose:"Run LLaMA/Mistral locally FREE", free:true  },
+      { name:"LangChain",               purpose:"RAG pipelines, agents",           free:true  },
+      { name:"ChromaDB",                purpose:"Local vector database",           free:true  },
+      { name:"sentence-transformers",   purpose:"Text embeddings",                 free:true  },
+      { name:"PEFT",                    purpose:"LoRA fine-tuning",                free:true  },
+    ],
+    weeklyLabs: [
+      { week:1, title:"Classical NLP + Embeddings", tasks:["TF-IDF spam classifier — compare to BERT embeddings + LogReg","Load GloVe embeddings, find top-10 most similar words to 'king'","Build a sentence similarity search with sentence-transformers + cosine sim"] },
+      { week:2, title:"BERT Fine-Tuning Lab", tasks:["Fine-tune DistilBERT on SST-2 sentiment dataset using Trainer API","Fine-tune on a custom dataset (scrape 500 product reviews, label them)","Evaluate precision/recall/F1 — beat a TF-IDF baseline"] },
+      { week:3, title:"RAG Pipeline Lab", tasks:["Load a 50-page PDF, chunk it, embed with sentence-transformers, store in Chroma","Build a Q&A chain with LangChain RetrievalQA + Ollama (local LLaMA)","Test 10 questions — evaluate accuracy, spot hallucinations"] },
+      { week:4, title:"LLM Agent Lab", tasks:["Build a ReAct agent with LangChain: give it web search + calculator tools","Fine-tune a small model (phi-2 or Mistral) with LoRA on a custom task","Deploy your RAG chatbot with Gradio to Hugging Face Spaces"] },
+    ],
+    dailyHabit: "Run Ollama locally for all LLM experiments — zero API cost. Use OpenAI only for final comparisons.",
+    resources: ["https://huggingface.co/docs", "https://ollama.ai", "https://python.langchain.com/docs"],
+  },
+  7: {
+    title: "Real-World Projects Lab",
+    environment: "FastAPI + Docker + GitHub Actions + HF Spaces",
+    setup: [
+      "pip install fastapi uvicorn python-multipart httpx pytest",
+      "pip install streamlit gradio",
+      "Install Docker Desktop: https://docker.com/products/docker-desktop",
+      "Create GitHub account + enable GitHub Actions (free)",
+      "Create Render account: https://render.com (free deployment)",
+    ],
+    tools: [
+      { name:"FastAPI",         purpose:"REST API for every ML model",           free:true },
+      { name:"Docker",          purpose:"Containerise every project",            free:true },
+      { name:"GitHub Actions",  purpose:"CI/CD pipeline — test on every push",  free:true },
+      { name:"Gradio",          purpose:"Fast demo UIs for ML models",           free:true },
+      { name:"Render / HF Spaces",purpose:"Free cloud deployment",              free:true },
+      { name:"pytest",          purpose:"API and model integration tests",       free:true },
+    ],
+    weeklyLabs: [
+      { week:1, title:"FastAPI + Docker Foundations", tasks:["Build FastAPI app: POST /predict accepts JSON, returns prediction","Write Dockerfile, build image, run container locally","Add /health and /metrics endpoints with model version info"] },
+      { week:2, title:"CI/CD Pipeline", tasks:["GitHub Actions workflow: lint → test → build Docker → push to GHCR","Write 5 pytest integration tests for your API","Set up automatic deployment to Render on merge to main"] },
+      { week:3, title:"End-to-End Projects Sprint", tasks:["Project 1: Semantic search — FastAPI + ChromaDB + Gradio UI","Project 2: Fraud detection — FastAPI scoring endpoint + Streamlit dashboard","Add logging (structlog), rate limiting, auth (API key header)"] },
+      { week:4, title:"Portfolio Project Launch", tasks:["Pick your best project — full production polish","Write a proper README with architecture diagram (use Excalidraw)","Record a 3-minute demo video. Deploy live. Share on LinkedIn"] },
+    ],
+    dailyHabit: "Every project gets a Dockerfile and a GitHub repo from Day 1. Never code something you can't ship.",
+    resources: ["https://fastapi.tiangolo.com", "https://docs.docker.com/get-started", "https://render.com/docs"],
+  },
+  8: {
+    title: "AI Model Deployment Lab",
+    environment: "AWS / GCP + Docker + Prometheus + Grafana",
+    setup: [
+      "Create AWS Free Tier account: https://aws.amazon.com/free",
+      "Install AWS CLI: pip install awscli && aws configure",
+      "Install Terraform: https://terraform.io/downloads",
+      "pip install boto3 sagemaker",
+      "Docker Desktop already installed from Month 7",
+    ],
+    tools: [
+      { name:"AWS SageMaker",   purpose:"Managed ML training + endpoints",        free:"free tier" },
+      { name:"AWS EC2",         purpose:"VM for model serving",                   free:"free tier" },
+      { name:"Terraform",       purpose:"Provision infrastructure as code",       free:true },
+      { name:"Prometheus",      purpose:"Scrape ML API metrics",                  free:true },
+      { name:"Grafana Cloud",   purpose:"Dashboards for model monitoring",        free:"free tier" },
+      { name:"Locust",          purpose:"Load testing your ML APIs",              free:true },
+    ],
+    weeklyLabs: [
+      { week:1, title:"Cloud Deployment Foundations", tasks:["Deploy your Month 7 Docker image to AWS EC2 free tier","Set up an Application Load Balancer in front of it","Create an S3 bucket for model artefacts — upload your saved models"] },
+      { week:2, title:"SageMaker Endpoint Lab", tasks:["Train a simple model with SageMaker Training Job","Deploy to a SageMaker real-time endpoint","Call the endpoint from Python with boto3, measure latency"] },
+      { week:3, title:"Monitoring Stack", tasks:["Add Prometheus /metrics endpoint to your FastAPI app","Set up Grafana Cloud — connect to Prometheus datasource","Build dashboard: request rate, p95 latency, error rate, model confidence"] },
+      { week:4, title:"Load Testing & Optimisation", tasks:["Run Locust: simulate 100 concurrent users hitting your endpoint","Identify bottleneck — CPU? Memory? Model inference?","Optimise: add batch inference, cache repeated requests with Redis"] },
+    ],
+    dailyHabit: "Treat every model like it's going to production. Measure latency on everything.",
+    resources: ["https://docs.aws.amazon.com/sagemaker", "https://grafana.com/docs", "https://locust.io"],
+  },
+  9: {
+    title: "MLOps & Scaling Lab",
+    environment: "MLflow + DVC + Airflow + W&B",
+    setup: [
+      "pip install mlflow dvc wandb great-expectations",
+      "pip install apache-airflow  # or use Astro CLI: https://astronomer.io",
+      "mlflow ui  # launches experiment tracking UI on localhost:5000",
+      "dvc init  # inside your git repo",
+      "Create free W&B account: https://wandb.ai",
+    ],
+    tools: [
+      { name:"MLflow",          purpose:"Experiment tracking + model registry",   free:true },
+      { name:"DVC",             purpose:"Data + model versioning with Git",        free:true },
+      { name:"Apache Airflow",  purpose:"Schedule ML training pipelines",          free:true },
+      { name:"Weights & Biases",purpose:"Richer experiment tracking + sweeps",    free:"free tier" },
+      { name:"Great Expectations",purpose:"Data validation in pipelines",          free:true },
+      { name:"Evidently AI",    purpose:"Data/model drift detection",              free:true },
+    ],
+    weeklyLabs: [
+      { week:1, title:"Experiment Tracking Setup", tasks:["Wrap your best ML model with mlflow.log_metric and mlflow.log_param","Run 10 experiments varying hyperparameters — compare in MLflow UI","Register the best model in MLflow Model Registry — promote to Production"] },
+      { week:2, title:"Data & Pipeline Versioning", tasks:["Add DVC to your project — version your training CSV with dvc add","Create dvc.yaml pipeline: raw → preprocessed → trained → evaluated","Push DVC remote to S3 or Google Drive"] },
+      { week:3, title:"Automated Retraining Pipeline", tasks:["Write an Airflow DAG: download fresh data → retrain → evaluate → register","Add a Great Expectations checkpoint — fail the DAG if data quality drops","Set up Evidently to detect feature drift — email alert when triggered"] },
+      { week:4, title:"Full MLOps Stack Integration", tasks:["One project: DVC (data) + MLflow (tracking) + Airflow (pipeline) + monitoring","Trigger a full automated retraining by corrupting 10% of the training data","Document the full pipeline with architecture diagram"] },
+    ],
+    dailyHabit: "Every experiment tracked. Every dataset versioned. If you can't reproduce it, it didn't happen.",
+    resources: ["https://mlflow.org/docs", "https://dvc.org/doc", "https://docs.wandb.ai"],
+  },
+  10: {
+    title: "Cloud & DataOps Lab",
+    environment: "AWS + Spark + dbt + Kafka + Terraform",
+    setup: [
+      "AWS account from Month 8 — expand to use more services",
+      "pip install pyspark dbt-core dbt-bigquery",
+      "Install Kafka locally: https://kafka.apache.org/quickstart",
+      "Or use Confluent Cloud free tier: https://confluent.io",
+      "Install Terraform from Month 8 — extend your IaC",
+    ],
+    tools: [
+      { name:"PySpark",           purpose:"Process large ML datasets",            free:true },
+      { name:"dbt",               purpose:"Transform data for ML feature tables", free:true },
+      { name:"Apache Kafka",      purpose:"Real-time data streaming",             free:true },
+      { name:"Confluent Cloud",   purpose:"Managed Kafka (free tier)",            free:"free tier" },
+      { name:"AWS Glue",          purpose:"Serverless Spark for ETL",             free:"free tier" },
+      { name:"Terraform",         purpose:"Provision full ML infrastructure",     free:true },
+    ],
+    weeklyLabs: [
+      { week:1, title:"Big Data Processing", tasks:["Load a 1M-row CSV with PySpark — operations that would crash Pandas","Write Spark ML pipeline: preprocessing + LogisticRegression","Profile performance: PySpark vs Pandas for the same operation"] },
+      { week:2, title:"dbt Feature Engineering", tasks:["Set up dbt project connected to BigQuery free tier or DuckDB","Write 3 dbt models: raw → staging → features (aggregated, encoded)","Add dbt tests: not_null, unique, accepted_values on your feature table"] },
+      { week:3, title:"Real-Time ML Pipeline", tasks:["Produce synthetic events to a Kafka topic (user clicks)","Write a Kafka consumer that computes features in real time","Call your SageMaker endpoint per event — log predictions to S3"] },
+      { week:4, title:"Full Cloud Architecture with Terraform", tasks:["Provision: S3 + SageMaker + Lambda + API Gateway using Terraform","Complete IaC: destroy and recreate your entire ML stack with one command","Cost analysis: estimate monthly cost, apply spot instances to cut by 70%"] },
+    ],
+    dailyHabit: "Every cloud resource you create manually, then recreate with Terraform. IaC from Day 1.",
+    resources: ["https://spark.apache.org/docs", "https://docs.getdbt.com", "https://developer.confluent.io"],
+  },
+  11: {
+    title: "Interview Prep Lab",
+    environment: "LeetCode + Excalidraw + Pramp",
+    setup: [
+      "Create LeetCode account: https://leetcode.com (free tier is enough)",
+      "Create Pramp account (free mock interviews): https://pramp.com",
+      "Use Excalidraw for system design diagrams: https://excalidraw.com",
+      "interviewing.io for anonymous mock interviews: https://interviewing.io",
+      "No code setup needed — this month is practice under pressure",
+    ],
+    tools: [
+      { name:"LeetCode",        purpose:"Coding interview practice",             free:"free tier" },
+      { name:"Pramp",           purpose:"Free peer mock interviews",             free:true },
+      { name:"Excalidraw",      purpose:"System design whiteboarding",           free:true },
+      { name:"interviewing.io", purpose:"Anonymous mock interviews",             free:"free tier" },
+      { name:"Notion/Obsidian", purpose:"ML theory Q&A notes",                  free:true },
+    ],
+    weeklyLabs: [
+      { week:1, title:"Coding Interview Foundations", tasks:["Solve 2 LeetCode Easy + 1 Medium per day (14 problems total)","Focus: arrays, hashmaps, strings, two pointers, sliding window","Time yourself: each problem max 25 minutes. Review optimal solution"] },
+      { week:2, title:"ML Theory Rapid-Fire", tasks:["Create an Anki/Notion deck: 100 ML Q&A cards","Quiz yourself on 20 cards daily until you can answer in <30 seconds","Record yourself answering 5 hard questions — review your explanations"] },
+      { week:3, title:"System Design Practice", tasks:["Design 3 systems using the framework: Rec system, Fraud detection, Chatbot","Draw each in Excalidraw — practice drawing while talking out loud","Do 1 Pramp mock interview — get feedback, iterate"] },
+      { week:4, title:"Full Mock Interview Loop", tasks:["Do a full 4-hour mock interview day: coding + ML theory + system design + behavioural","Schedule a real mock on Pramp or interviewing.io","Review all feedback, identify top 3 weak areas, targeted practice"] },
+    ],
+    dailyHabit: "2 LeetCode problems every single day. Consistency beats cramming. Track your streak.",
+    resources: ["https://leetcode.com/study-plan/data-structure", "https://pramp.com", "https://excalidraw.com"],
+  },
+  12: {
+    title: "Certification & Portfolio Lab",
+    environment: "AWS/GCP exam platform + GitHub + HF Spaces",
+    setup: [
+      "Schedule your certification exam: https://aws.amazon.com/certification",
+      "AWS practice exams: https://explore.skillbuilder.aws (free tier)",
+      "GCP practice: https://cloud.google.com/learn/certification",
+      "Polish your GitHub profile: add a profile README",
+      "Deploy all 3 portfolio projects publicly before Day 20",
+    ],
+    tools: [
+      { name:"AWS Skill Builder",    purpose:"Official AWS exam practice",        free:"free tier" },
+      { name:"Tutorials Dojo",       purpose:"Best AWS practice exams",           free:"paid ~$15" },
+      { name:"GitHub Pages",         purpose:"Free personal website hosting",     free:true },
+      { name:"HF Spaces",            purpose:"Deploy ML demos for portfolio",     free:true },
+      { name:"Canva",                purpose:"Architecture diagrams for README",  free:"free tier" },
+    ],
+    weeklyLabs: [
+      { week:1, title:"Certification Exam Sprint", tasks:["Take 2 full practice exams — score and analyse weak domains","Deep dive on weak areas with AWS/GCP documentation","Schedule your real exam by end of Week 1"] },
+      { week:2, title:"Portfolio Polish Sprint", tasks:["Project 1: Add architecture diagram, improve README, record demo","Project 2: Deploy live endpoint, add evaluation metrics to README","Project 3: Write a model card following HuggingFace format"] },
+      { week:3, title:"Personal Website + Blog", tasks:["Launch personal website with GitHub Pages or Netlify","Write technical blog post 1: explain one of your projects in depth","Submit to Towards Data Science or dev.to — builds credibility"] },
+      { week:4, title:"Open Source & Exam Day", tasks:["Submit a PR to an open source ML project","Complete LinkedIn optimisation — headline, about, featured projects","Take your certification exam — celebrate after!"] },
+    ],
+    dailyHabit: "One exam question set per day. One commit to a portfolio project per day. Small consistent actions.",
+    resources: ["https://tutorialsdojo.com", "https://pages.github.com", "https://huggingface.co/spaces"],
+  },
+  13: {
+    title: "Final Capstone & Job Search Lab",
+    environment: "Your full stack — everything from Months 1-12",
+    setup: [
+      "This month uses everything you've built. No new installs.",
+      "Set up a job search tracker: Notion or Google Sheets",
+      "Columns: Company | Role | Applied | Phone Screen | Technical | Offer | Notes",
+      "Target: 5 applications per day from Day 11 onwards",
+      "Set up job alerts: LinkedIn, Otta, Wellfound, Lever, Greenhouse",
+    ],
+    tools: [
+      { name:"All previous tools",   purpose:"Building your signature project",   free:true },
+      { name:"Notion",               purpose:"Job search tracker",                free:true },
+      { name:"LinkedIn Premium",     purpose:"InMail + who viewed profile",       free:"trial" },
+      { name:"Otta / Wellfound",     purpose:"AI/ML focused job boards",         free:true },
+      { name:"Levels.fyi",           purpose:"Research compensation benchmarks", free:true },
+      { name:"Glassdoor",            purpose:"Interview experience research",    free:true },
+    ],
+    weeklyLabs: [
+      { week:1, title:"Signature Capstone Build", tasks:["Days 1-5: data pipeline + model development","Days 6-8: FastAPI + Docker + deployment + monitoring","Days 9-10: tests, README, blog post, live demo — launch publicly"] },
+      { week:2, title:"Active Job Search Launch", tasks:["Send 25+ targeted applications in Week 2","Personalise every cover letter — mention their specific ML stack","Send 10 LinkedIn cold messages to AI engineers at target companies"] },
+      { week:3, title:"Interview Circuit", tasks:["Track every interview — what was asked, how you answered","Daily debrief: what went well, what to improve","Keep applying — pipeline should have 10+ active opportunities"] },
+      { week:4, title:"Offer & Decision", tasks:["Evaluate any offers using the framework from Month 13 Day 18","Negotiate — every AI engineer should negotiate, always","Accept, give notice, plan your first 30 days"] },
+    ],
+    dailyHabit: "Days 1-10: build. Days 11-30: apply every day without exception. Job searching is a numbers game.",
+    resources: ["https://otta.com", "https://wellfound.com", "https://levels.fyi"],
+  },
+};
+
+
+// ─── LESSON LOOKUP ────────────────────────────────────────────────────────────
+function getLesson(monthId, dayNum, dayData, monthTitle) {
+  const key = `${monthId}-${dayNum}`;
+  if (LESSONS[key])       return LESSONS[key];
+  if (LESSONS_EXTRA[key]) return LESSONS_EXTRA[key];
+
+  // Fallback — unique per topic, no generic boilerplate
+  return {
+    welcome: `Day ${dayNum}: ${dayData.topic}. ${dayData.summary.split('.')[0]}. Let's build real understanding, not surface knowledge.`,
+    objectives: [
+      dayData.summary.split('.')[0],
+      `Write and run working code that demonstrates ${dayData.topic} in a real scenario`,
+      `Recognise and avoid the gotchas that trip up experienced developers`
+    ],
+    explanation: [
+      `${dayData.topic}: ${dayData.summary}`,
+      `Understanding WHY Python does this the way it does is as important as knowing HOW. Python's design philosophy consistently prioritises readability and explicit intent. When you grasp the design decisions, the syntax stops feeling arbitrary.`,
+      `In production engineering, ${dayData.topic} appears across data pipelines, API design, testing infrastructure, and ML model code. Engineers who truly understand these concepts debug faster and write solutions that colleagues can read and maintain.`,
+      `Work through all five tabs today — the project is where the concept becomes muscle memory. Type every line yourself; don't copy-paste. Experiment by changing values to see what breaks and why.`
+    ],
+    examples: [
+      { title:`${dayData.topic} — core syntax` },
+      { title:`Practical application` },
+      { title:`Common mistakes` }
+    ],
+    rules: [
+      dayData.summary.split('.')[0],
+      `Test edge cases: empty input, zero, negative, very large values`,
+      `Read the full error traceback — the answer to every bug is somewhere in it`,
+      `Write in small pieces: implement one thing, test it, then continue`,
+      `If the code feels complicated, there is a simpler Python approach`
+    ],
+    exercises: [
+      { level:"Beginner", title:`${dayData.topic} — First Steps`, instructions:`Implement the core syntax of ${dayData.topic} from scratch. Every line typed by hand. Verify output matches expectations. Topic: ${dayData.summary}` },
+      { level:"Intermediate", title:`${dayData.topic} — Applied`, instructions:`Build a small function that applies ${dayData.topic} to realistic data. Handle at least one edge case explicitly.` },
+      { level:"Challenge", title:`${dayData.topic} — Push Further`, instructions:`Combine ${dayData.topic} with earlier concepts. Sketch your approach before coding. Aim for clean, well-structured code with comments.` }
+    ],
+    quiz: [
+      { q:`What is the main purpose of ${dayData.topic}?`, options:[`A) ${dayData.summary.substring(0,60)}...`,`B) Only used in advanced ML`,`C) Replaces all other structures`,`D) Web development only`], correct:"A", explain:`${dayData.topic}: ${dayData.summary}` },
+      { q:"What does Python raise on a type mismatch (e.g. adding str to int)?", options:["A) SyntaxError","B) TypeError","C) ValueError","D) NameError"], correct:"B", explain:"TypeError is raised when an operation is applied to an incompatible type. Check variable types with type()." },
+      { q:"Pythonic way to check if a list is empty:", options:["A) if len(x)==0:","B) if x==[]:","C) if not x:","D) if x.empty():"], correct:"C", explain:"Empty containers are falsy. 'if not x:' is the idiomatic Python empty-check." },
+      { q:"When should you write a function?", options:["A) When code exceeds 5 lines","B) When logic is reused, testable, or has a clear single purpose","C) Functions always run faster","D) Only for advanced features"], correct:"B", explain:"Functions exist for reusability, readability, and testability. If you write the same logic twice — make it a function." },
+      { q:"What does 'dynamically typed' mean in Python?", options:["A) Runs faster than statically typed","B) Types are determined at runtime by the assigned value — no declaration","C) You must declare types upfront","D) Python auto-converts between types"], correct:"B", explain:"x=5 makes x an int; x='hello' makes x a str. The type follows the value, not a declaration." }
+    ],
+    project: { title:`${dayData.topic} — Daily Build`, time:"60-75 min", mission:`Build a complete, tested program using ${dayData.topic} as the core feature. Clean code, comments, edge cases handled, formatted output.`, steps:[{title:"Plan first",desc:`Write out in comments exactly what the program will do and how it uses ${dayData.topic}`},{title:"Core feature",desc:"Implement the main logic. Get it working before polishing."},{title:"Edge cases",desc:"Empty input, zero, out-of-range values — handle them with clear messages"},{title:"Format output",desc:"Professional labels, alignment, and structure. Output quality matters."},{title:"Final tests",desc:"Three different inputs. Does everything behave correctly every time?"}], success:[`${dayData.topic} used correctly as the core feature`,`At least two edge cases handled with clear messages`,`Professional formatted output`] }
+  };
+}
+// ─── CURRICULUM ───────────────────────────────────────────────────────────────
+const MONTHS = [
+  // ── PHASE 1: CORE FOUNDATIONS ─────────────────────────────────────────────
+  {
+    id: 1, phase: 1, phaseTitle: "Core Foundations",
+    title: "Python Programming",
+    subtitle: "From absolute beginner to advanced Python — the language of AI engineering",
+    icon: "🐍", color: "#22c55e",
+    days: [
+      // ── BEGINNER: Days 1-10 — Pure Python Foundations ────────────────────
+      { day:1,  level:"Beginner",     topic:"Your First Python Program",            tag:"FOUNDATIONS",    summary:"What Python is, how to run a script, print(), comments, variables. Zero assumptions, zero to running." },
+      { day:2,  level:"Beginner",     topic:"Variables & Data Types",               tag:"FOUNDATIONS",    summary:"int, float, str, bool, None. Variable naming rules, type() function, dynamic typing explained." },
+      { day:3,  level:"Beginner",     topic:"Strings In Depth",                     tag:"FOUNDATIONS",    summary:"String creation, indexing, slicing, f-strings, methods: upper/lower/strip/split/join/replace." },
+      { day:4,  level:"Beginner",     topic:"Numbers & Arithmetic",                 tag:"FOUNDATIONS",    summary:"int vs float, all arithmetic operators, precedence, math module, integer division, modulo." },
+      { day:5,  level:"Beginner",     topic:"User Input & Type Casting",            tag:"FOUNDATIONS",    summary:"input() always returns str. int()/float()/str() casting. Building your first interactive program." },
+      { day:6,  level:"Beginner",     topic:"Conditional Logic — if/elif/else",     tag:"CONTROL FLOW",   summary:"Boolean expressions, comparison operators, logical operators (and/or/not), nested conditions." },
+      { day:7,  level:"Beginner",     topic:"Lists — Creating & Indexing",          tag:"DATA STRUCTURES", summary:"Creating lists, positive/negative indexing, slicing, len(), mutability, nested lists basics." },
+      { day:8,  level:"Beginner",     topic:"Lists — Methods & Loops",              tag:"DATA STRUCTURES", summary:"append, insert, remove, pop, sort, reverse, count. Looping over a list with for." },
+      { day:9,  level:"Beginner",     topic:"For Loops & range()",                  tag:"CONTROL FLOW",   summary:"Iterating over sequences, range(start,stop,step), enumerate(), accumulator pattern." },
+      { day:10, level:"Beginner",     topic:"While Loops & Loop Control",           tag:"CONTROL FLOW",   summary:"while condition, break, continue, else clause on loops, input validation loop pattern." },
+      // ── INTERMEDIATE: Days 11-20 — Functions & Core Data Structures ───────
+      { day:11, level:"Intermediate", topic:"Functions — Defining & Calling",       tag:"FUNCTIONS",      summary:"def, parameters, arguments, return, None return, docstrings, single-responsibility principle." },
+      { day:12, level:"Intermediate", topic:"Functions — Advanced Parameters",      tag:"FUNCTIONS",      summary:"Default values, keyword arguments, *args, **kwargs, unpacking, the mutable default bug." },
+      { day:13, level:"Intermediate", topic:"Scope & Closures",                     tag:"FUNCTIONS",      summary:"LEGB rule, global/nonlocal keywords, closures, factory functions, the memoisation pattern." },
+      { day:14, level:"Intermediate", topic:"Dictionaries",                         tag:"DATA STRUCTURES", summary:"Key-value pairs, .get(), .keys()/.values()/.items(), setdefault, nesting, dict comprehensions." },
+      { day:15, level:"Intermediate", topic:"Tuples & Sets",                        tag:"DATA STRUCTURES", summary:"Tuples as immutable sequences, unpacking, sets for uniqueness, union/intersection/difference." },
+      { day:16, level:"Intermediate", topic:"List & Dict Comprehensions",           tag:"PYTHONIC CODE",   summary:"List comprehensions, filtering, dict comprehensions, set comprehensions, when to use them." },
+      { day:17, level:"Intermediate", topic:"Error Handling",                       tag:"RELIABILITY",    summary:"try/except/else/finally, exception types, raising, custom exceptions, defensive programming." },
+      { day:18, level:"Intermediate", topic:"File I/O & JSON",                      tag:"RELIABILITY",    summary:"open(), read/write/append, context manager (with), CSV files, json module, pathlib basics." },
+      { day:19, level:"Intermediate", topic:"Modules, Packages & pip",              tag:"ECOSYSTEM",      summary:"import, from x import y, aliasing, stdlib tour (os, sys, math, random, datetime), pip basics." },
+      { day:20, level:"Intermediate", topic:"Lambda, Map, Filter & Sorted",         tag:"PYTHONIC CODE",  summary:"lambda syntax, map(), filter(), sorted(key=), functools.reduce(), when functional style helps." },
+      // ── ADVANCED: Days 21-30 — OOP, Generators, Decorators, Testing ───────
+      { day:21, level:"Advanced",     topic:"OOP I — Classes & Objects",            tag:"OOP",            summary:"__init__, self, instance vs class attributes, instance methods, class methods, static methods." },
+      { day:22, level:"Advanced",     topic:"OOP II — Inheritance & Polymorphism",  tag:"OOP",            summary:"Inheritance chain, super(), method overriding, isinstance/issubclass, duck typing, ABC." },
+      { day:23, level:"Advanced",     topic:"OOP III — Magic Methods",              tag:"OOP",            summary:"__str__, __repr__, __len__, __eq__, __lt__, __add__, __iter__ — making objects feel native." },
+      { day:24, level:"Advanced",     topic:"Generators & Iterators",               tag:"ADVANCED",       summary:"yield, generator functions vs list comprehensions, __iter__/__next__, lazy evaluation, memory." },
+      { day:25, level:"Advanced",     topic:"Decorators",                           tag:"ADVANCED",       summary:"Functions as objects, higher-order functions, @decorator syntax, functools.wraps, parametrised decorators." },
+      { day:26, level:"Advanced",     topic:"Context Managers",                     tag:"ADVANCED",       summary:"__enter__/__exit__, contextlib.contextmanager, custom managers, resource management patterns." },
+      { day:27, level:"Advanced",     topic:"Concurrency — Threading & asyncio",    tag:"ADVANCED",       summary:"The GIL explained, threading for I/O, async/await, event loop, asyncio.gather(), when to use." },
+      { day:28, level:"Advanced",     topic:"Type Hints & Dataclasses",             tag:"ADVANCED",       summary:"PEP 484 type hints, Optional, Union, TypeVar, @dataclass, field(), frozen=True, __post_init__." },
+      { day:29, level:"Advanced",     topic:"Testing with pytest",                  tag:"ADVANCED",       summary:"Why testing, assert, fixtures, parametrize, mocking with unittest.mock, test-driven mindset." },
+      { day:30, level:"Advanced",     topic:"Python Capstone Project",              tag:"CAPSTONE",       summary:"Build a tested, OOP-designed CLI app using files, error handling, decorators, and type hints." },
+    ],
+  },
+  {
+    id: 2, phase: 1, phaseTitle: "Core Foundations",
+    title: "Mathematics for AI",
+    subtitle: "Linear Algebra, Probability & Statistics, Calculus & Optimisation — all implemented in NumPy",
+    icon: "∑", color: "#3b82f6",
+    days: [
+      // ── BEGINNER: Days 1-10 — Linear Algebra Foundations ─────────────────
+      { day:1,  level:"Beginner",     topic:"Numbers, Sets & Mathematical Notation", tag:"FOUNDATIONS",   summary:"Real numbers, integers, rationals. Set notation ∈ ⊂ ∪ ∩. Summation Σ and product Π notation." },
+      { day:2,  level:"Beginner",     topic:"Functions & Graphs",                    tag:"FOUNDATIONS",   summary:"Function as mapping, domain/range, f(x) notation, linear/quadratic/exponential, plotting intuition." },
+      { day:3,  level:"Beginner",     topic:"Vectors — What They Are",               tag:"LINEAR ALGEBRA", summary:"Vectors as arrows vs lists of numbers, 2D/3D vectors, magnitude, direction, unit vectors." },
+      { day:4,  level:"Beginner",     topic:"Vector Operations",                     tag:"LINEAR ALGEBRA", summary:"Addition, subtraction, scalar multiplication geometrically and algebraically. Linear combinations." },
+      { day:5,  level:"Beginner",     topic:"Dot Product & Cosine Similarity",       tag:"LINEAR ALGEBRA", summary:"Dot product formula, geometric meaning, cosine similarity, orthogonality, projections. Used in embeddings." },
+      { day:6,  level:"Beginner",     topic:"Matrices — Structure & Notation",       tag:"LINEAR ALGEBRA", summary:"Matrix as grid of numbers, row/column notation, square/rectangular/identity/zero matrices." },
+      { day:7,  level:"Beginner",     topic:"Matrix Arithmetic",                     tag:"LINEAR ALGEBRA", summary:"Addition, subtraction, scalar multiplication, element-wise ops. When shapes must match." },
+      { day:8,  level:"Beginner",     topic:"Matrix Multiplication",                 tag:"LINEAR ALGEBRA", summary:"(m×n)·(n×p)=(m×p), the dot product view, why order matters, matrix-vector as linear transform." },
+      { day:9,  level:"Beginner",     topic:"Transpose & Inverse",                   tag:"LINEAR ALGEBRA", summary:"Transposing rows/columns, symmetric matrices, inverse matrix, conditions, solving Ax=b." },
+      { day:10, level:"Beginner",     topic:"Determinants",                          tag:"LINEAR ALGEBRA", summary:"2×2 and 3×3 determinants, geometric meaning (area/volume scaling), singular matrices." },
+      // ── INTERMEDIATE: Days 11-20 — Probability & Statistics ───────────────
+      { day:11, level:"Intermediate", topic:"Eigenvalues & Eigenvectors",            tag:"LINEAR ALGEBRA", summary:"Av=λv intuition, characteristic polynomial, computing eigenvalues. Used in PCA, PageRank, graph ML." },
+      { day:12, level:"Intermediate", topic:"SVD & PCA",                             tag:"LINEAR ALGEBRA", summary:"Singular Value Decomposition, principal components, variance explained, dimensionality reduction." },
+      { day:13, level:"Intermediate", topic:"Probability Basics",                    tag:"PROBABILITY",   summary:"Sample space, events, probability axioms, equally likely outcomes, complement, addition rule." },
+      { day:14, level:"Intermediate", topic:"Conditional Probability & Bayes",       tag:"PROBABILITY",   summary:"P(A|B), multiplication rule, independence, Bayes theorem, prior/likelihood/posterior, Naive Bayes." },
+      { day:15, level:"Intermediate", topic:"Random Variables & Distributions",      tag:"PROBABILITY",   summary:"Discrete vs continuous, PMF, PDF, CDF, expected value E[X], variance Var(X), standard deviation." },
+      { day:16, level:"Intermediate", topic:"Key ML Distributions",                  tag:"PROBABILITY",   summary:"Bernoulli, Binomial, Poisson, Uniform, Gaussian — shapes, parameters, when each appears in ML." },
+      { day:17, level:"Intermediate", topic:"Central Limit Theorem",                 tag:"STATISTICS",    summary:"CLT statement and intuition, sampling distributions, standard error. Why Gaussian dominates ML." },
+      { day:18, level:"Intermediate", topic:"Maximum Likelihood Estimation",         tag:"STATISTICS",    summary:"Likelihood function, log-likelihood, MLE for Gaussian/Bernoulli. Connection to ML loss functions." },
+      { day:19, level:"Intermediate", topic:"Hypothesis Testing",                    tag:"STATISTICS",    summary:"Null hypothesis, t-test, chi-squared, p-values, significance. Validating ML experiments rigorously." },
+      { day:20, level:"Intermediate", topic:"Information Theory",                    tag:"STATISTICS",    summary:"Entropy H(X), cross-entropy loss, KL divergence, mutual information — the math behind every loss." },
+      // ── ADVANCED: Days 21-30 — Calculus & Optimisation ────────────────────
+      { day:21, level:"Advanced",     topic:"Derivatives — Rules & Intuition",       tag:"CALCULUS",      summary:"Derivative as slope/rate-of-change, power/product/quotient/chain rules — the backbone of backprop." },
+      { day:22, level:"Advanced",     topic:"Common Derivatives in ML",              tag:"CALCULUS",      summary:"Sigmoid, tanh, ReLU, softmax, log, exp derivatives — every activation function you will ever use." },
+      { day:23, level:"Advanced",     topic:"Partial Derivatives & Gradients",       tag:"CALCULUS",      summary:"∂f/∂x, gradient vector ∇f, gradient as direction of steepest ascent, gradients in neural nets." },
+      { day:24, level:"Advanced",     topic:"The Chain Rule & Backpropagation",      tag:"CALCULUS",      summary:"Composite functions, chain rule, computational graphs, forward/backward pass — backprop derived." },
+      { day:25, level:"Advanced",     topic:"Gradient Descent",                      tag:"CALCULUS",      summary:"Cost function, θ := θ - α∇J, learning rate, SGD, mini-batch, momentum, Adam intuition." },
+      { day:26, level:"Advanced",     topic:"Optimisation — Convexity & Minima",     tag:"CALCULUS",      summary:"Convex functions, local vs global minima, saddle points, second derivative test, why convex = tractable." },
+      { day:27, level:"Advanced",     topic:"Regularisation — The Maths",            tag:"CALCULUS",      summary:"L1 sparsity via subgradients, L2 weight decay, derive regularised gradient update, bias-variance math." },
+      { day:28, level:"Advanced",     topic:"Linear Regression — Full Derivation",   tag:"ADVANCED",      summary:"OLS closed form (XᵀX)⁻¹Xᵀy, gradient descent solution, MLE connection, geometric interpretation." },
+      { day:29, level:"Advanced",     topic:"The Math of Neural Networks",           tag:"ADVANCED",      summary:"Forward pass as matrix ops, loss as probability (MLE), backward pass as chain rule. Full picture." },
+      { day:30, level:"Advanced",     topic:"Mathematics Capstone Project",          tag:"CAPSTONE",      summary:"Implement gradient descent + logistic regression from scratch with NumPy. Visualise the loss curve." },
+    ],
+  },
+  {
+    id: 3, phase: 1, phaseTitle: "Core Foundations",
+    title: "Introduction to Machine Learning",
+    subtitle: "Scikit-learn, classical ML algorithms, model evaluation, and feature engineering",
+    icon: "🤖", color: "#8b5cf6",
+    days: [
+      // ── BEGINNER: Days 1-10 — ML Concepts & Core Algorithms ──────────────
+      { day:1,  level:"Beginner",     topic:"What is Machine Learning?",             tag:"ML CONCEPTS",   summary:"Supervised vs unsupervised vs reinforcement learning. The ML workflow: data → features → model → evaluate." },
+      { day:2,  level:"Beginner",     topic:"Scikit-learn API — fit/transform/predict",tag:"SKLEARN",     summary:"The universal sklearn API, train_test_split, Pipeline, StandardScaler, LabelEncoder." },
+      { day:3,  level:"Beginner",     topic:"Linear Regression",                     tag:"REGRESSION",    summary:"OLS, gradient descent, MSE loss, R², RMSE. sklearn LinearRegression + from-scratch NumPy." },
+      { day:4,  level:"Beginner",     topic:"Regularisation — Ridge, Lasso & ElasticNet",tag:"REGRESSION",summary:"L1 and L2 penalties, overfitting vs underfitting, bias-variance tradeoff." },
+      { day:5,  level:"Beginner",     topic:"Logistic Regression",                   tag:"CLASSIFICATION",summary:"Sigmoid, cross-entropy loss, decision boundary, precision, recall, F1, ROC-AUC." },
+      { day:6,  level:"Beginner",     topic:"Decision Trees",                        tag:"CLASSIFICATION",summary:"Gini impurity, information gain, tree depth, overfitting in trees, sklearn DecisionTreeClassifier." },
+      { day:7,  level:"Beginner",     topic:"Random Forests & Ensemble Learning",    tag:"CLASSIFICATION",summary:"Bagging, random feature subsets, out-of-bag error, feature importance, ExtraTreesClassifier." },
+      { day:8,  level:"Beginner",     topic:"Support Vector Machines",               tag:"CLASSIFICATION",summary:"Hyperplane, margins, kernel trick (linear, RBF), C and gamma params, sklearn SVM." },
+      { day:9,  level:"Beginner",     topic:"K-Nearest Neighbours & Naive Bayes",    tag:"CLASSIFICATION",summary:"Distance metrics, k choice, Gaussian Naive Bayes, Bernoulli NB, when and why to use each." },
+      { day:10, level:"Beginner",     topic:"Model Evaluation & Cross-Validation",   tag:"EVALUATION",    summary:"cross_val_score, StratifiedKFold, confusion matrix, classification report, learning curves." },
+      // ── INTERMEDIATE: Days 11-20 — Feature Engineering & Advanced Models ──
+      { day:11, level:"Intermediate", topic:"Feature Engineering & Selection",       tag:"FEATURES",      summary:"Polynomial features, interactions, SelectKBest, RFE, feature importance from tree models." },
+      { day:12, level:"Intermediate", topic:"Hyperparameter Tuning",                 tag:"OPTIMISATION",  summary:"GridSearchCV, RandomizedSearchCV, Optuna basics. Tuning depth, LR, regularisation." },
+      { day:13, level:"Intermediate", topic:"Unsupervised Learning — Clustering",    tag:"CLUSTERING",    summary:"K-Means, DBSCAN, silhouette score, elbow method. Finding structure in unlabelled data." },
+      { day:14, level:"Intermediate", topic:"Dimensionality Reduction — PCA & t-SNE",tag:"DIM REDUCTION", summary:"PCA variance explained, scree plot, t-SNE visualisation. Reducing features for speed and insight." },
+      { day:15, level:"Intermediate", topic:"Pipelines & ColumnTransformer",         tag:"SKLEARN",       summary:"sklearn Pipeline, ColumnTransformer, custom transformers. Production-ready preprocessing." },
+      { day:16, level:"Intermediate", topic:"Handling Imbalanced Data",              tag:"TECHNIQUES",    summary:"Class imbalance, SMOTE, class_weight, precision-recall tradeoff, threshold selection." },
+      { day:17, level:"Intermediate", topic:"Gradient Boosting — XGBoost & LightGBM",tag:"BOOSTING",     summary:"Boosting intuition, XGBoost, LightGBM, early stopping, feature importance. Kaggle winners." },
+      { day:18, level:"Intermediate", topic:"Text & Datetime Features",              tag:"FEATURES",      summary:"TF-IDF, CountVectorizer, datetime features, encoding strategies, target encoding." },
+      { day:19, level:"Intermediate", topic:"Saving & Loading Models",               tag:"DEPLOYMENT",    summary:"joblib, pickle, model versioning, sklearn inference pipeline, basic REST prediction." },
+      { day:20, level:"Intermediate", topic:"Model Interpretability",                tag:"INTERPRETABILITY",summary:"SHAP values, LIME, partial dependence plots. Explaining ML model decisions to stakeholders." },
+      // ── ADVANCED: Days 21-30 — EDA, Projects & Real-World ML ─────────────
+      { day:21, level:"Advanced",     topic:"Exploratory Data Analysis Deep Dive",   tag:"EDA",           summary:"Pair plots, correlation matrices, outlier detection, distribution analysis, feature relationships." },
+      { day:22, level:"Advanced",     topic:"Model Debugging & Error Analysis",      tag:"DEBUGGING",     summary:"Residual plots, confusion matrix deep dive, error analysis, model interpretability." },
+      { day:23, level:"Advanced",     topic:"Feature Engineering Masterclass",       tag:"FEATURES",      summary:"Advanced: frequency encoding, binning, interaction terms, time-series features, embeddings." },
+      { day:24, level:"Advanced",     topic:"Project — House Price Prediction",      tag:"PROJECT",       summary:"Full regression pipeline: EDA, feature engineering, Ridge/Lasso/GBM, CV evaluation." },
+      { day:25, level:"Advanced",     topic:"Project — Customer Churn Classification",tag:"PROJECT",      summary:"Binary classification: imbalanced data, feature selection, threshold tuning, ROC-AUC analysis." },
+      { day:26, level:"Advanced",     topic:"Project — Customer Segmentation",       tag:"PROJECT",       summary:"K-Means clustering on e-commerce data. PCA visualisation, segment profiling, business insights." },
+      { day:27, level:"Advanced",     topic:"Kaggle Competition Walkthrough",        tag:"PRACTICE",      summary:"End-to-end Kaggle submission: EDA, baseline, feature engineering, ensemble, leaderboard." },
+      { day:28, level:"Advanced",     topic:"ML Algorithms — Complete Review",       tag:"REVIEW",        summary:"Review all algorithms: when to use each, complexity, assumptions, common pitfalls." },
+      { day:29, level:"Advanced",     topic:"End-to-End ML Project Practice",        tag:"PRACTICE",      summary:"Build a complete ML project raw data to model to prediction API in one day." },
+      { day:30, level:"Advanced",     topic:"ML Capstone Project",                   tag:"CAPSTONE",      summary:"Full Kaggle-style project: EDA, 3+ models, ensemble, CV evaluation, detailed analysis report." },
+    ],
+  },
+  // ── PHASE 2: SPECIALISATION & DEEP DIVE ───────────────────────────────────
+  {
+    id: 4, phase: 1, phaseTitle: "Core Foundations",
+    title: "Deep Learning Basics",
+    subtitle: "Neural networks, TensorFlow/Keras, CNNs, RNNs, Transformers and generative models",
+    icon: "🧠", color: "#f59e0b",
+    days: [
+      // ── BEGINNER: Days 1-10 — Neural Network Foundations ─────────────────
+      { day:1,  level:"Beginner",     topic:"What is Deep Learning?",                tag:"FOUNDATIONS",   summary:"Deep learning vs ML vs AI. Why neural nets work. Real applications. Hype vs reality." },
+      { day:2,  level:"Beginner",     topic:"The Perceptron — One Neuron",           tag:"FOUNDATIONS",   summary:"Single neuron: weights, bias, activation. The building block of every neural network." },
+      { day:3,  level:"Beginner",     topic:"Activation Functions",                  tag:"FOUNDATIONS",   summary:"Sigmoid, tanh, ReLU, Leaky ReLU, softmax. What they do, why we need them, which to use when." },
+      { day:4,  level:"Beginner",     topic:"Neural Network Architecture",           tag:"FOUNDATIONS",   summary:"Input/hidden/output layers, depth vs width, parameter count, forward pass walkthrough." },
+      { day:5,  level:"Beginner",     topic:"Loss Functions",                        tag:"FOUNDATIONS",   summary:"MSE, MAE for regression. Binary CE, categorical CE for classification. Choosing the right loss." },
+      { day:6,  level:"Beginner",     topic:"Backpropagation Intuition",             tag:"FOUNDATIONS",   summary:"How errors flow backward, chain rule applied, gradient computation — intuition before maths." },
+      { day:7,  level:"Beginner",     topic:"Optimisers — SGD, Adam & Friends",      tag:"FOUNDATIONS",   summary:"Gradient descent, learning rate, Momentum, RMSprop, Adam. What to use by default and why." },
+      { day:8,  level:"Beginner",     topic:"TensorFlow & Keras Setup",              tag:"TENSORFLOW",    summary:"Installing TensorFlow, GPU check, Keras Sequential API, Dense layers, compile, fit, summary." },
+      { day:9,  level:"Beginner",     topic:"Your First Neural Network",             tag:"TENSORFLOW",    summary:"Binary classification with Keras. fit(), evaluate(), predict(), training curves, confusion matrix." },
+      { day:10, level:"Beginner",     topic:"Overfitting & Regularisation",          tag:"FOUNDATIONS",   summary:"Bias-variance tradeoff, training vs validation loss, dropout, L1/L2, batch norm, early stopping." },
+      // ── INTERMEDIATE: Days 11-20 — CNNs, RNNs & Transformers ─────────────
+      { day:11, level:"Intermediate", topic:"Convolutional Neural Networks — Intuition",tag:"CNN",         summary:"Convolution, filters/kernels, feature maps, pooling, receptive field, translation invariance." },
+      { day:12, level:"Intermediate", topic:"Building CNNs with Keras",              tag:"CNN",           summary:"Conv2D, MaxPooling2D, Flatten, Dense. Train on MNIST and CIFAR-10. Visualise filters." },
+      { day:13, level:"Intermediate", topic:"Transfer Learning",                     tag:"TRANSFER",      summary:"ImageNet pre-training, VGG16/ResNet50/MobileNet, feature extraction vs fine-tuning." },
+      { day:14, level:"Intermediate", topic:"Data Augmentation",                     tag:"CNN",           summary:"ImageDataGenerator, random transforms, Albumentations. Augmentation as regularisation." },
+      { day:15, level:"Intermediate", topic:"Recurrent Neural Networks — LSTM & GRU",tag:"RNN",           summary:"Sequence data, RNN cell, LSTM gates (forget/input/output), GRU. Time series and text tasks." },
+      { day:16, level:"Intermediate", topic:"Text Embeddings",                       tag:"NLP",           summary:"Tokenisation, padding, Embedding layer, word2vec, using pre-trained GloVe embeddings in Keras." },
+      { day:17, level:"Intermediate", topic:"Attention Mechanism",                   tag:"TRANSFORMERS",  summary:"Self-attention, queries/keys/values, scaled dot-product attention. The key idea behind transformers." },
+      { day:18, level:"Intermediate", topic:"Transformer Architecture",              tag:"TRANSFORMERS",  summary:"Encoder-decoder, positional encoding, multi-head attention, feed-forward. Full architecture." },
+      { day:19, level:"Intermediate", topic:"BERT & GPT — Intuition",               tag:"TRANSFORMERS",  summary:"Masked LM (BERT) vs causal LM (GPT). Pre-training and fine-tuning. When to use each." },
+      { day:20, level:"Intermediate", topic:"PyTorch Introduction",                  tag:"PYTORCH",       summary:"Tensors, autograd, nn.Module, custom training loop from scratch. Why research uses PyTorch." },
+      // ── ADVANCED: Days 21-30 — Generative Models, Debugging, Production ───
+      { day:21, level:"Advanced",     topic:"Autoencoders",                          tag:"GENERATIVE",    summary:"Encoder-decoder structure, latent space, reconstruction loss, denoising autoencoders." },
+      { day:22, level:"Advanced",     topic:"Variational Autoencoders",              tag:"GENERATIVE",    summary:"VAE vs AE, reparameterisation trick, KL divergence term, sampling from latent space." },
+      { day:23, level:"Advanced",     topic:"Generative Adversarial Networks",       tag:"GENERATIVE",    summary:"Generator vs discriminator, adversarial training, mode collapse, DCGAN, practical GAN tips." },
+      { day:24, level:"Advanced",     topic:"Hyperparameter Tuning for Deep Learning",tag:"TUNING",       summary:"Learning rate finder, batch size effects, Keras Tuner, TensorBoard experiment tracking." },
+      { day:25, level:"Advanced",     topic:"Debugging Deep Learning Models",        tag:"DEBUGGING",     summary:"Loss not decreasing, vanishing/exploding gradients, GPU memory errors, data pipeline bugs." },
+      { day:26, level:"Advanced",     topic:"Model Optimisation & Compression",      tag:"PRODUCTION",    summary:"Quantisation (INT8/FP16), pruning, knowledge distillation, ONNX export." },
+      { day:27, level:"Advanced",     topic:"Mixed Precision & Distributed Training",tag:"PRODUCTION",    summary:"FP16 training, gradient scaling, PyTorch DDP basics. Training large models efficiently." },
+      { day:28, level:"Advanced",     topic:"Experiment Tracking with TensorBoard & W&B",tag:"TOOLS",     summary:"TensorBoard visualisation, Weights & Biases logging, comparing runs, sharing experiments." },
+      { day:29, level:"Advanced",     topic:"Deep Learning Best Practices",          tag:"PRODUCTION",    summary:"Reproducibility, seed setting, model cards, responsible deep learning, debugging checklist." },
+      { day:30, level:"Advanced",     topic:"Deep Learning Capstone Project",        tag:"CAPSTONE",      summary:"Train a complete deep learning model: CNN for images OR LSTM for sequences. Full pipeline." },
+    ],
+  },
+  {
+    id: 5, phase: 2, phaseTitle: "Specialisation & Deep Dive",
+    title: "Computer Vision (CV)",
+    subtitle: "Text processing, transformers, LLMs, RAG, and NLP production systems",
+    icon: "💬", color: "#ec4899",
+    days: [
+      // ── BEGINNER: Days 1-10 — NLP Foundations ────────────────────────────
+      { day:1,  level:"Beginner",     topic:"What is NLP?",                         tag:"NLP BASICS",     summary:"NLP tasks overview: classification, NER, translation, generation. Real applications. The NLP pipeline." },
+      { day:2,  level:"Beginner",     topic:"Text Preprocessing",                   tag:"NLP BASICS",     summary:"Tokenisation, lowercasing, stopwords, stemming, lemmatisation. NLTK and spaCy basics." },
+      { day:3,  level:"Beginner",     topic:"Bag of Words & TF-IDF",                tag:"NLP BASICS",     summary:"CountVectorizer, TF-IDF, n-grams, vocabulary size, sparse matrices, classical text features." },
+      { day:4,  level:"Beginner",     topic:"Text Classification",                  tag:"NLP BASICS",     summary:"Spam detection, sentiment analysis with TF-IDF + LogisticRegression. Evaluation: F1, ROC-AUC." },
+      { day:5,  level:"Beginner",     topic:"Named Entity Recognition",             tag:"NLP BASICS",     summary:"spaCy NER, entity types (PERSON/ORG/LOC), custom NER, evaluation with F1 per entity." },
+      { day:6,  level:"Beginner",     topic:"Word Embeddings — word2vec & GloVe",   tag:"EMBEDDINGS",     summary:"word2vec skip-gram/CBOW, GloVe vectors, semantic similarity, word analogies, loading pre-trained." },
+      { day:7,  level:"Beginner",     topic:"Sentiment Analysis Deep Dive",         tag:"NLP APPS",       summary:"VADER, TextBlob, LSTM sentiment, aspect-based sentiment. Building a full sentiment pipeline." },
+      { day:8,  level:"Beginner",     topic:"Text Generation — n-gram Models",      tag:"NLP BASICS",     summary:"Language model basics, n-gram probabilities, perplexity, simple text generation from n-grams." },
+      { day:9,  level:"Beginner",     topic:"Sequence Models — RNN & LSTM for NLP",tag:"NLP BASICS",     summary:"RNNs for text, LSTM text classifier, sequence padding, Embedding + LSTM + Dense in Keras." },
+      { day:10, level:"Beginner",     topic:"NLP Evaluation Metrics",               tag:"EVALUATION",     summary:"Accuracy, F1, precision, recall for classification. BLEU, ROUGE for generation. Perplexity for LMs." },
+      // ── INTERMEDIATE: Days 11-20 — Transformers & LLMs ──────────────────
+      { day:11, level:"Intermediate", topic:"BERT — Bidirectional Transformers",    tag:"TRANSFORMERS",   summary:"BERT pre-training, masked LM, NSP task, [CLS] token, fine-tuning BERT for classification." },
+      { day:12, level:"Intermediate", topic:"Hugging Face — transformers Library",  tag:"HUGGING FACE",   summary:"AutoTokenizer, AutoModel, pipeline(), datasets library, model hub, tokenizer deep dive." },
+      { day:13, level:"Intermediate", topic:"Fine-Tuning BERT for Classification",  tag:"FINE-TUNING",    summary:"BertForSequenceClassification, Trainer API, training loop, evaluation, saving the fine-tuned model." },
+      { day:14, level:"Intermediate", topic:"GPT & Text Generation",                tag:"LLM",            summary:"GPT architecture, causal LM, generation strategies (greedy, beam, top-p, top-k, temperature)." },
+      { day:15, level:"Intermediate", topic:"Large Language Models Overview",       tag:"LLM",            summary:"GPT-4, LLaMA, Mistral, Phi, Gemma. Model families, context windows, instruction following, chat." },
+      { day:16, level:"Intermediate", topic:"Prompt Engineering",                   tag:"LLM",            summary:"Zero-shot, few-shot, chain-of-thought, ReAct, structured output, system prompts. Practical prompting." },
+      { day:17, level:"Intermediate", topic:"Question Answering Systems",           tag:"NLP APPS",       summary:"Extractive QA (BERT on SQuAD), abstractive QA, open-domain QA pipeline, evaluation." },
+      { day:18, level:"Intermediate", topic:"Vector Databases & Semantic Search",   tag:"VECTOR DB",      summary:"Embeddings, cosine similarity, FAISS, Chroma, Pinecone. Building semantic search from scratch." },
+      { day:19, level:"Intermediate", topic:"RAG — Retrieval-Augmented Generation", tag:"RAG",            summary:"RAG architecture, document loading, chunking, embedding, retrieval, generation. LangChain intro." },
+      { day:20, level:"Intermediate", topic:"LLM Evaluation",                       tag:"EVALUATION",     summary:"BLEU, ROUGE, BERTScore, LLM-as-judge, RAGAS for RAG. Detecting hallucinations." },
+      // ── ADVANCED: Days 21-30 — Fine-Tuning, Agents, Production NLP ───────
+      { day:21, level:"Advanced",     topic:"LoRA & QLoRA Fine-Tuning",             tag:"FINE-TUNING",    summary:"Parameter-efficient fine-tuning, LoRA adapters, QLoRA 4-bit, PEFT library, custom LLM training." },
+      { day:22, level:"Advanced",     topic:"LLM Agents & Tool Use",                tag:"AGENTS",         summary:"ReAct framework, tool/function calling, LangChain agents, memory, planning, multi-step reasoning." },
+      { day:23, level:"Advanced",     topic:"Building a Full RAG Pipeline",         tag:"RAG",            summary:"LangChain full pipeline: PDF loader, text splitter, embeddings, Chroma, RetrievalQA chain, UI." },
+      { day:24, level:"Advanced",     topic:"Multi-Modal NLP",                      tag:"MULTIMODAL",     summary:"GPT-4V, LLaVA, BLIP-2. Image captioning, visual QA, document understanding with LLMs." },
+      { day:25, level:"Advanced",     topic:"NLP in Production",                    tag:"PRODUCTION",     summary:"vLLM inference, quantisation (GGUF), prompt caching, rate limiting, streaming responses." },
+      { day:26, level:"Advanced",     topic:"LLM Safety & Guardrails",              tag:"SAFETY",         summary:"Prompt injection, jailbreaking, NeMo Guardrails, output filtering, responsible LLM deployment." },
+      { day:27, level:"Advanced",     topic:"Advanced Retrieval Techniques",        tag:"RAG",            summary:"HyDE, re-ranking, hybrid search, parent-child chunking, multi-query retrieval, RAPTOR." },
+      { day:28, level:"Advanced",     topic:"NLP Research — Latest Advances",       tag:"RESEARCH",       summary:"Mixture-of-experts, context length extension, RLHF, DPO, Speculative Decoding, reading papers." },
+      { day:29, level:"Advanced",     topic:"NLP Portfolio Project Polish",         tag:"PORTFOLIO",      summary:"Polish and deploy your NLP project. Production quality, API, demo, documentation." },
+      { day:30, level:"Advanced",     topic:"NLP Capstone — Production System",     tag:"CAPSTONE",       summary:"Full NLP system: fine-tuned model OR RAG chatbot with API, evaluation, monitoring, portfolio." },
+    ],
+  },
+  {
+    id: 6, phase: 2, phaseTitle: "Specialisation & Deep Dive",
+    title: "Natural Language Processing (NLP)",
+    subtitle: "End-to-end AI projects combining CV, NLP, and classical ML for production",
+    icon: "🚀", color: "#14b8a6",
+    days: [
+      // ── BEGINNER: Days 1-10 — Project Foundations & Tooling ─────────────
+      { day:1,  level:"Beginner",     topic:"Project Planning for AI",              tag:"PROJECT MGMT",   summary:"Scoping ML problems, success metrics, data requirements, feasibility, project charter template." },
+      { day:2,  level:"Beginner",     topic:"Data Collection Strategies",           tag:"DATA",           summary:"Web scraping, public datasets, APIs, synthetic data generation, data quality assessment." },
+      { day:3,  level:"Beginner",     topic:"Building ML APIs with FastAPI",        tag:"DEPLOYMENT",     summary:"FastAPI endpoints, Pydantic schemas, model loading, health checks, docs with Swagger UI." },
+      { day:4,  level:"Beginner",     topic:"Containerisation with Docker",         tag:"DEVOPS",         summary:"Dockerfile, docker build/run, docker-compose, GPU Docker (nvidia-docker), sharing containers." },
+      { day:5,  level:"Beginner",     topic:"Git & GitHub for AI Projects",        tag:"TOOLS",          summary:"git workflow, branching, .gitignore for ML, GitHub Actions basics, version control for models." },
+      { day:6,  level:"Beginner",     topic:"Streamlit & Gradio for ML Demos",     tag:"UI",             summary:"Building interactive ML demos with Streamlit, Gradio interfaces, deploying to Hugging Face Spaces." },
+      { day:7,  level:"Beginner",     topic:"Project 1 — AI Semantic Search",      tag:"PROJECT",        summary:"Build semantic search: sentence embeddings, vector DB, FastAPI backend, simple web UI." },
+      { day:8,  level:"Beginner",     topic:"Project 1 — Day 2: Deploy & Polish",  tag:"PROJECT",        summary:"Deploy search to HF Spaces, add metadata filtering, write README, demo recording." },
+      { day:9,  level:"Beginner",     topic:"Project 2 — Customer Support Bot",    tag:"PROJECT",        summary:"RAG-based chatbot: knowledge base ingestion, intent detection, LangChain, chat UI." },
+      { day:10, level:"Beginner",     topic:"Project 2 — Day 2: Guardrails & Eval",tag:"PROJECT",        summary:"Add guardrails, conversation memory, evaluation metrics, Slack/web integration." },
+      // ── INTERMEDIATE: Days 11-20 — Diverse Project Domains ───────────────
+      { day:11, level:"Intermediate", topic:"Project 3 — Fraud Detection",         tag:"PROJECT",        summary:"Tabular ML: feature engineering, class imbalance (SMOTE), XGBoost, real-time scoring API." },
+      { day:12, level:"Intermediate", topic:"Project 3 — Day 2: Monitoring",       tag:"PROJECT",        summary:"Model monitoring, drift detection, automated retraining trigger, Grafana dashboard." },
+      { day:13, level:"Intermediate", topic:"Project 4 — Medical Image Analysis",  tag:"PROJECT",        summary:"CNN for X-ray or skin lesion classification. Transfer learning, Grad-CAM, explainability." },
+      { day:14, level:"Intermediate", topic:"Project 4 — Day 2: Deploy & Explain", tag:"PROJECT",        summary:"DICOM handling, Flask/FastAPI serving, confidence scores, medical AI considerations." },
+      { day:15, level:"Intermediate", topic:"Project 5 — Recommendation System",   tag:"PROJECT",        summary:"Collaborative filtering, matrix factorisation, ALS, content-based, hybrid recommender." },
+      { day:16, level:"Intermediate", topic:"Project 5 — Day 2: Cold Start & A/B", tag:"PROJECT",        summary:"Cold start problem, A/B testing framework, real-time feature serving, evaluation metrics." },
+      { day:17, level:"Intermediate", topic:"CI/CD for ML Projects",               tag:"MLOPS",          summary:"GitHub Actions, automated testing for ML, model validation gates, deployment pipelines." },
+      { day:18, level:"Intermediate", topic:"AI System Architecture Patterns",     tag:"ARCHITECTURE",   summary:"Microservices for AI, event-driven ML, batch vs real-time, caching, queue-based inference." },
+      { day:19, level:"Intermediate", topic:"Testing AI Systems",                  tag:"TESTING",        summary:"Unit tests for ML code, pytest for pipelines, model tests, data validation, integration testing." },
+      { day:20, level:"Intermediate", topic:"AI Ethics & Responsible AI",          tag:"ETHICS",         summary:"Bias in ML, fairness metrics, model cards, GDPR for AI, responsible disclosure practices." },
+      // ── ADVANCED: Days 21-30 — Portfolio & Career Projects ───────────────
+      { day:21, level:"Advanced",     topic:"Open Source AI Tools Landscape",      tag:"ECOSYSTEM",      summary:"LangChain, LlamaIndex, Haystack, Weaviate, DVC, MLflow, W&B. When to use each." },
+      { day:22, level:"Advanced",     topic:"AI Product Thinking",                 tag:"PRODUCT",        summary:"ML as product features, AB testing, user feedback loops, product metrics vs ML metrics." },
+      { day:23, level:"Advanced",     topic:"Portfolio Project — Planning",        tag:"PORTFOLIO",      summary:"Select your 3 best projects. Define polish criteria, deployment targets, storytelling angles." },
+      { day:24, level:"Advanced",     topic:"Portfolio Project — Build Day 1",     tag:"PORTFOLIO",      summary:"Data pipeline, model training, evaluation. First half of your showcase project." },
+      { day:25, level:"Advanced",     topic:"Portfolio Project — Build Day 2",     tag:"PORTFOLIO",      summary:"API, demo UI, deployment, README, architecture diagram. Project launch." },
+      { day:26, level:"Advanced",     topic:"Technical Writing for AI",            tag:"COMMUNICATION",  summary:"Effective READMEs, architecture diagrams, model cards, blog posts, technical documentation." },
+      { day:27, level:"Advanced",     topic:"AI Research Literacy",                tag:"RESEARCH",       summary:"Reading arXiv efficiently, understanding benchmarks, avoiding hype, research vs production gap." },
+      { day:28, level:"Advanced",     topic:"Labelling & Data Annotation",         tag:"DATA",           summary:"Label Studio, Roboflow, CVAT. Annotation guidelines, inter-annotator agreement, quality control." },
+      { day:29, level:"Advanced",     topic:"Phase 2 Review & Portfolio Assessment",tag:"REVIEW",        summary:"Review all Phase 2. Portfolio quality assessment, identify gaps, plan Phase 3." },
+      { day:30, level:"Advanced",     topic:"Capstone — Signature Portfolio Project",tag:"CAPSTONE",     summary:"Production-quality AI project demonstrating CV or NLP expertise. Full documentation and deployment." },
+    ],
+  },
+  // ── PHASE 3: AI IN PRODUCTION ─────────────────────────────────────────────
+  {
+    id: 7, phase: 2, phaseTitle: "Specialisation & Deep Dive",
+    title: "Real-World AI Projects",
+    subtitle: "FastAPI, Docker, cloud deployment, model serving, and inference optimisation",
+    icon: "📦", color: "#f97316",
+    days: [
+      // ── BEGINNER: Days 1-10 — Deployment Foundations ─────────────────────
+      { day:1,  level:"Beginner",     topic:"Production ML Architecture Overview",  tag:"ARCHITECTURE",   summary:"Training vs serving, batch vs real-time, model registries, CI/CD for ML. Production checklist." },
+      { day:2,  level:"Beginner",     topic:"FastAPI for ML Serving",               tag:"FASTAPI",        summary:"FastAPI async, Pydantic v2, ML model loading, background tasks, middleware, API versioning." },
+      { day:3,  level:"Beginner",     topic:"Docker for ML",                        tag:"DOCKER",         summary:"Dockerfile, multi-stage builds, .dockerignore, GPU Docker, docker-compose for ML stacks." },
+      { day:4,  level:"Beginner",     topic:"Model Serialisation",                  tag:"MLOPS",          summary:"joblib, pickle, ONNX export, model signatures, versioning artefacts, loading at inference." },
+      { day:5,  level:"Beginner",     topic:"REST API Design for AI",               tag:"API DESIGN",     summary:"Endpoint design, request/response schemas, async vs sync, streaming responses, error handling." },
+      { day:6,  level:"Beginner",     topic:"Deploying to Cloud — AWS",             tag:"CLOUD",          summary:"AWS EC2, S3, SageMaker endpoints. Deploying a Docker model to a managed endpoint." },
+      { day:7,  level:"Beginner",     topic:"Deploying to Cloud — GCP & Azure",     tag:"CLOUD",          summary:"GCP Vertex AI Prediction, Azure ML endpoints. Multi-cloud deployment patterns." },
+      { day:8,  level:"Beginner",     topic:"Serverless ML Inference",              tag:"SERVERLESS",     summary:"AWS Lambda for ML, Google Cloud Functions, cold starts, optimising for serverless." },
+      { day:9,  level:"Beginner",     topic:"Load Balancing & Scaling",             tag:"SCALING",        summary:"Horizontal scaling, load balancers, rate limiting, Redis queues, Celery for async inference." },
+      { day:10, level:"Beginner",     topic:"Hugging Face Inference Endpoints",     tag:"HUGGING FACE",   summary:"HF Endpoints, Spaces, custom containers, serverless vs dedicated. Easiest deployment path." },
+      // ── INTERMEDIATE: Days 11-20 — Optimisation, LLM Serving, Monitoring ──
+      { day:11, level:"Intermediate", topic:"Model Inference Optimisation",         tag:"OPTIMISATION",   summary:"ONNX Runtime, TensorRT, quantisation (INT8/FP16), dynamic batching, throughput vs latency." },
+      { day:12, level:"Intermediate", topic:"LLM Inference — vLLM & TGI",          tag:"LLM SERVING",    summary:"vLLM, Text Generation Inference, continuous batching, PagedAttention, speculative decoding." },
+      { day:13, level:"Intermediate", topic:"Model Monitoring — Metrics & Alerts",  tag:"MONITORING",     summary:"Latency p50/p95/p99, throughput, error rate, GPU utilisation. Prometheus + Grafana setup." },
+      { day:14, level:"Intermediate", topic:"Data & Concept Drift Detection",       tag:"MONITORING",     summary:"Statistical tests for drift, Evidently AI, monitoring feature distributions in production." },
+      { day:15, level:"Intermediate", topic:"Logging & Observability",              tag:"OBSERVABILITY",  summary:"Structured logging, distributed tracing, OpenTelemetry for ML, debugging production issues." },
+      { day:16, level:"Intermediate", topic:"Shadow & Canary Deployments",          tag:"DEPLOYMENT",     summary:"Blue-green deployment, canary releases, shadow mode testing, feature flags for ML models." },
+      { day:17, level:"Intermediate", topic:"Caching for ML APIs",                  tag:"PERFORMANCE",    summary:"Redis caching for predictions, semantic caching for LLMs, CDN for model artefacts." },
+      { day:18, level:"Intermediate", topic:"Security for ML APIs",                 tag:"SECURITY",       summary:"Authentication, JWT, API keys, rate limiting, input validation, model theft prevention." },
+      { day:19, level:"Intermediate", topic:"Kubernetes for ML",                    tag:"K8S",            summary:"Pods, deployments, HPA, GPU nodes, resource quotas, Helm charts for ML applications." },
+      { day:20, level:"Intermediate", topic:"Cost Optimisation for ML",             tag:"COST",           summary:"Spot instances, auto-scaling, model distillation for cost, reserved capacity, FinOps for ML." },
+      // ── ADVANCED: Days 21-30 — Edge, Testing, Incident Response ──────────
+      { day:21, level:"Advanced",     topic:"Edge & Mobile Deployment",             tag:"EDGE",           summary:"TensorFlow Lite, ONNX for mobile, CoreML, WebAssembly ML, edge inference patterns." },
+      { day:22, level:"Advanced",     topic:"Performance Testing ML APIs",          tag:"TESTING",        summary:"Locust, k6 for load testing. Stress testing, finding bottlenecks, SLA definition." },
+      { day:23, level:"Advanced",     topic:"ML Incident Response",                 tag:"OPERATIONS",     summary:"Runbooks for ML incidents, rollback procedures, post-mortems, on-call for ML systems." },
+      { day:24, level:"Advanced",     topic:"API Documentation Best Practices",     tag:"DOCUMENTATION",  summary:"OpenAPI/Swagger for ML APIs, model cards, system cards, deployment runbooks." },
+      { day:25, level:"Advanced",     topic:"Multi-Model Serving",                  tag:"PRODUCTION",     summary:"Triton Inference Server, BentoML, Seldon Core. Serving multiple models efficiently." },
+      { day:26, level:"Advanced",     topic:"Async & Streaming Inference",          tag:"PRODUCTION",     summary:"WebSockets for streaming LLM responses, async queues, server-sent events, long polling." },
+      { day:27, level:"Advanced",     topic:"Feature Stores for Serving",           tag:"FEATURES",       summary:"Online feature stores, low-latency feature retrieval at inference time, Feast online store." },
+      { day:28, level:"Advanced",     topic:"End-to-End Deployment Practice",       tag:"PRACTICE",       summary:"Deploy a model end-to-end: containerise, cloud deploy, add monitoring, load test. One day." },
+      { day:29, level:"Advanced",     topic:"Month 7 Review",                       tag:"REVIEW",         summary:"Review all deployment patterns. Production readiness checklist. Prepare for MLOps deep dive." },
+      { day:30, level:"Advanced",     topic:"Capstone — Production AI Service",     tag:"CAPSTONE",       summary:"Fully production-ready AI service: Docker, cloud, monitoring, load testing, docs. Portfolio." },
+    ],
+  },
+  {
+    id: 8, phase: 3, phaseTitle: "AI in Production",
+    title: "AI Model Deployment",
+    subtitle: "ML pipelines, experiment tracking, feature stores, model registries, and CI/CD",
+    icon: "⚙️", color: "#6366f1",
+    days: [
+      // ── BEGINNER: Days 1-10 — MLOps Foundations ──────────────────────────
+      { day:1,  level:"Beginner",     topic:"MLOps Introduction",                   tag:"MLOPS",          summary:"MLOps maturity levels, the ML lifecycle, tooling landscape, why MLOps matters at scale." },
+      { day:2,  level:"Beginner",     topic:"MLflow — Experiment Tracking",         tag:"MLFLOW",         summary:"mlflow.log_metric/param/artifact, runs, experiments, comparison UI. Tracking all ML experiments." },
+      { day:3,  level:"Beginner",     topic:"MLflow — Model Registry & Serving",    tag:"MLFLOW",         summary:"Model registry stages (Staging/Production), model signatures, MLflow models serve endpoint." },
+      { day:4,  level:"Beginner",     topic:"Weights & Biases (W&B)",              tag:"WANDB",          summary:"wandb.init, logging, W&B sweeps for hyperparameter optimisation, Artifacts for versioning." },
+      { day:5,  level:"Beginner",     topic:"DVC — Data Version Control",           tag:"DVC",            summary:"DVC for dataset versioning, pipelines (dvc run), remote storage (S3/GCS), dvc repro." },
+      { day:6,  level:"Beginner",     topic:"Data Validation — Great Expectations", tag:"DATA QUALITY",   summary:"Expectations, data docs, checkpoints, suite creation, integrating into pipelines." },
+      { day:7,  level:"Beginner",     topic:"Airflow for ML Pipelines",             tag:"AIRFLOW",        summary:"Airflow DAGs, operators, scheduling ML training, retraining pipelines, sensors, XCom." },
+      { day:8,  level:"Beginner",     topic:"Continuous Training Pipelines",        tag:"RETRAINING",     summary:"Trigger-based retraining, data freshness checks, pipeline automation, model validation gates." },
+      { day:9,  level:"Beginner",     topic:"A/B Testing for ML Models",            tag:"EXPERIMENTATION", summary:"Experiment design, statistical significance, multi-armed bandits, shadow evaluation patterns." },
+      { day:10, level:"Beginner",     topic:"Model Drift & Retraining Strategies",  tag:"MONITORING",     summary:"Concept drift, data drift, performance decay, scheduled vs triggered retraining decisions." },
+      // ── INTERMEDIATE: Days 11-20 — Advanced MLOps Tooling ────────────────
+      { day:11, level:"Intermediate", topic:"Kubeflow & Vertex AI Pipelines",       tag:"PIPELINES",      summary:"KFP SDK, Vertex AI Pipelines, component reuse, pipeline caching, artifact lineage." },
+      { day:12, level:"Intermediate", topic:"Feature Stores — Feast",               tag:"FEATURE STORE",  summary:"Feature store concepts, online vs offline features, Feast setup, point-in-time correct joins." },
+      { day:13, level:"Intermediate", topic:"Distributed Training Basics",          tag:"DISTRIBUTED",    summary:"Data parallelism, model parallelism, PyTorch DDP, Horovod basics, multi-GPU training." },
+      { day:14, level:"Intermediate", topic:"Infrastructure as Code — Terraform",   tag:"IaC",            summary:"Terraform for ML infrastructure: GPU instances, S3, IAM. Reproducible cloud environments." },
+      { day:15, level:"Intermediate", topic:"ML System Design Patterns",            tag:"ARCHITECTURE",   summary:"Lambda vs Kappa architecture, real-time feature computation, two-tower models, serving patterns." },
+      { day:16, level:"Intermediate", topic:"Responsible MLOps — Governance",       tag:"GOVERNANCE",     summary:"Model governance, audit trails, bias monitoring in production, fairness dashboards." },
+      { day:17, level:"Intermediate", topic:"ML Reliability Engineering",           tag:"SRE",            summary:"SLOs/SLAs for ML, error budgets, chaos engineering for ML, reliability patterns." },
+      { day:18, level:"Intermediate", topic:"Cost Management in MLOps",             tag:"COST",           summary:"GPU spot instances, preemptible VMs, cost allocation, FinOps for ML teams." },
+      { day:19, level:"Intermediate", topic:"Platform Engineering for ML",          tag:"PLATFORM",       summary:"Internal ML platforms, self-service tooling, developer experience, standardising workflows." },
+      { day:20, level:"Intermediate", topic:"MLOps for LLMs",                       tag:"LLM OPS",        summary:"LLMOps: prompt versioning, evaluation pipelines, RAG monitoring, fine-tuning orchestration." },
+      // ── ADVANCED: Days 21-30 — Complete MLOps Practice ───────────────────
+      { day:21, level:"Advanced",     topic:"Project — Complete ML Pipeline",       tag:"PROJECT",        summary:"Automated pipeline: data ingestion → training → evaluation → registration → deployment." },
+      { day:22, level:"Advanced",     topic:"Project — Experiment Tracking System", tag:"PROJECT",        summary:"MLflow + W&B for a real project. Compare 10+ experiments. Best model to production." },
+      { day:23, level:"Advanced",     topic:"Project — Feature Store Implementation",tag:"PROJECT",       summary:"Feast: define features, materialise, serve online and offline. End-to-end feature pipeline." },
+      { day:24, level:"Advanced",     topic:"MLOps Tools Comparison",               tag:"REVIEW",         summary:"MLflow vs W&B, Airflow vs Kubeflow, Feast vs Tecton. Decision framework for tooling." },
+      { day:25, level:"Advanced",     topic:"Building an Internal ML Platform",     tag:"PLATFORM",       summary:"Design an ML platform for a team: tooling, workflow design, onboarding documentation." },
+      { day:26, level:"Advanced",     topic:"MLOps Case Studies",                   tag:"CASE STUDIES",   summary:"Netflix, Uber, Airbnb ML platforms. What they built, why, and lessons learned." },
+      { day:27, level:"Advanced",     topic:"Advanced Pipeline Patterns",           tag:"PIPELINES",      summary:"Dynamic pipelines, conditional branches, fan-out/fan-in, pipeline triggers, backfill strategies." },
+      { day:28, level:"Advanced",     topic:"End-to-End MLOps Practice",            tag:"PRACTICE",       summary:"Complete MLOps setup from scratch: DVC + MLflow + Airflow + deployment. One day challenge." },
+      { day:29, level:"Advanced",     topic:"Month 8 Review",                       tag:"REVIEW",         summary:"Consolidate MLOps knowledge. Review pipelines, monitoring, retraining, governance." },
+      { day:30, level:"Advanced",     topic:"Capstone — Production MLOps Pipeline", tag:"CAPSTONE",       summary:"Full MLOps pipeline: versioned data, tracked experiments, automated retraining, monitoring." },
+    ],
+  },
+  {
+    id: 9, phase: 3, phaseTitle: "AI in Production",
+    title: "MLOps & Scaling",
+    subtitle: "AWS/GCP/Azure for AI, data engineering, Spark, streaming, and cloud architecture",
+    icon: "☁️", color: "#0ea5e9",
+    days: [
+      // ── BEGINNER: Days 1-10 — Cloud Fundamentals for AI ──────────────────
+      { day:1,  level:"Beginner",     topic:"Cloud Platforms for AI — Overview",    tag:"CLOUD",          summary:"AWS vs GCP vs Azure for AI/ML. Managed services comparison, pricing, when to use each." },
+      { day:2,  level:"Beginner",     topic:"AWS for AI — Core Services",           tag:"AWS",            summary:"EC2, S3, IAM, VPC basics. The foundational AWS services every ML engineer needs." },
+      { day:3,  level:"Beginner",     topic:"AWS SageMaker Deep Dive",              tag:"AWS",            summary:"SageMaker Studio, training jobs, managed endpoints, pipelines, Feature Store, Clarify." },
+      { day:4,  level:"Beginner",     topic:"GCP for AI — Vertex AI",              tag:"GCP",            summary:"Vertex AI Training, Prediction, Pipelines, Feature Store, AutoML, Workbench notebooks." },
+      { day:5,  level:"Beginner",     topic:"Azure for AI — Azure ML",              tag:"AZURE",          summary:"Azure ML Studio, compute clusters, endpoints, datasets, pipelines, Responsible AI toolkit." },
+      { day:6,  level:"Beginner",     topic:"Data Engineering Fundamentals",        tag:"DATA ENG",       summary:"ETL vs ELT, data warehouses (BigQuery, Redshift), data lakes, lakehouse architecture." },
+      { day:7,  level:"Beginner",     topic:"SQL for ML Engineers",                 tag:"DATA ENG",       summary:"Advanced SQL: window functions, CTEs, BigQuery ML, analytical queries for ML feature prep." },
+      { day:8,  level:"Beginner",     topic:"Apache Spark for ML",                  tag:"SPARK",          summary:"Spark DataFrames, MLlib, PySpark, Spark SQL. Processing large ML datasets efficiently." },
+      { day:9,  level:"Beginner",     topic:"dbt — Data Transformation",            tag:"DATA ENG",       summary:"dbt models, tests, documentation, incremental models. Building reliable ML feature tables." },
+      { day:10, level:"Beginner",     topic:"Cloud Storage & Data Lakes",           tag:"CLOUD",          summary:"S3, GCS, Azure Blob. Partitioning, file formats (Parquet, Delta), data lake best practices." },
+      // ── INTERMEDIATE: Days 11-20 — Streaming, IaC & Advanced Cloud ───────
+      { day:11, level:"Intermediate", topic:"Stream Processing — Kafka & Flink",    tag:"STREAMING",      summary:"Kafka topics, consumers, producers, Kafka Streams, Flink for real-time ML features." },
+      { day:12, level:"Intermediate", topic:"Orchestration — Prefect & Dagster",    tag:"ORCHESTRATION",  summary:"Prefect flows, tasks, deployments, Dagster assets. Modern pipeline orchestration." },
+      { day:13, level:"Intermediate", topic:"Kubernetes for ML Workloads",          tag:"K8S",            summary:"GPU node pools, resource quotas, job schedulers (Volcano), Helm for ML apps." },
+      { day:14, level:"Intermediate", topic:"Infrastructure as Code — Terraform",   tag:"IaC",            summary:"Terraform for ML infra: GPU instances, VPCs, S3, IAM. Reproducible cloud environments." },
+      { day:15, level:"Intermediate", topic:"Real-Time Feature Engineering",        tag:"FEATURES",       summary:"Feature computation in Kafka, feature freshness, online vs offline store patterns." },
+      { day:16, level:"Intermediate", topic:"Batch Inference at Scale",             tag:"SCALING",        summary:"Spark ML, Dask, Ray, SageMaker Batch Transform. Large-scale batch prediction patterns." },
+      { day:17, level:"Intermediate", topic:"Cloud Security for AI",                tag:"SECURITY",       summary:"IAM best practices, VPC for ML, encryption, secrets management (Vault, AWS Secrets Manager)." },
+      { day:18, level:"Intermediate", topic:"DataOps — Practices & Tooling",        tag:"DATAOPS",        summary:"DataOps maturity, data contracts, data mesh, catalogues (DataHub, Amundsen)." },
+      { day:19, level:"Intermediate", topic:"Data Observability",                   tag:"DATA QUALITY",   summary:"dbt tests, Monte Carlo, Anomalo. Monitoring data quality and freshness in production." },
+      { day:20, level:"Intermediate", topic:"Cloud Cost Optimisation for AI",       tag:"COST",           summary:"Spot instances, reserved capacity, mixed precision, efficient storage, auto-scaling." },
+      // ── ADVANCED: Days 21-30 — Cloud Architecture & Projects ─────────────
+      { day:21, level:"Advanced",     topic:"Cloud AI Services",                    tag:"AI SERVICES",    summary:"OpenAI API, Anthropic API, AWS Bedrock, Vertex AI LLMs, Azure OpenAI. Production use." },
+      { day:22, level:"Advanced",     topic:"Multi-Cloud & Hybrid Architecture",    tag:"ARCHITECTURE",   summary:"Multi-cloud strategy, avoiding lock-in, on-premise + cloud hybrid ML patterns." },
+      { day:23, level:"Advanced",     topic:"Building Resilient AI Systems",        tag:"ARCHITECTURE",   summary:"Fault tolerance, circuit breakers, graceful degradation, disaster recovery for ML." },
+      { day:24, level:"Advanced",     topic:"Project — Cloud ML Pipeline on AWS",   tag:"PROJECT",        summary:"S3 data, SageMaker training, endpoint, Lambda trigger, monitoring. End-to-end on AWS." },
+      { day:25, level:"Advanced",     topic:"Project — Real-Time ML Pipeline",      tag:"PROJECT",        summary:"Kafka → Flink feature engineering → real-time prediction → monitoring. Streaming ML." },
+      { day:26, level:"Advanced",     topic:"Cloud Certifications Guide",           tag:"CAREER",         summary:"AWS ML Specialty, GCP Pro ML Engineer, Azure AI Engineer. Study paths and exam tips." },
+      { day:27, level:"Advanced",     topic:"Cloud Architecture Best Practices",    tag:"ARCHITECTURE",   summary:"Reference architectures for ML systems. Well-architected framework for ML workloads." },
+      { day:28, level:"Advanced",     topic:"End-to-End Cloud AI Practice",         tag:"PRACTICE",       summary:"Deploy a full AI system on cloud from scratch: data, training, serving, monitoring." },
+      { day:29, level:"Advanced",     topic:"Phase 3 Review & Summary",             tag:"REVIEW",         summary:"Consolidate Phase 3. Review deployment, MLOps, cloud. Verify checkpoint criteria." },
+      { day:30, level:"Advanced",     topic:"Capstone — Cloud AI Architecture",     tag:"CAPSTONE",       summary:"Cloud-native AI system: IaC, data pipeline, model training, serving, monitoring. Full." },
+    ],
+  },
+  // ── PHASE 4: CAREER LAUNCH ────────────────────────────────────────────────
+  {
+    id: 10, phase: 3, phaseTitle: "AI in Production",
+    title: "Cloud & DataOps",
+    subtitle: "ML system design, coding interviews, ML theory questions, and mock interviews",
+    icon: "💼", color: "#d946ef",
+    days: [
+      // ── BEGINNER: Days 1-10 — Interview Foundations ───────────────────────
+      { day:1,  level:"Beginner",     topic:"AI Engineer Interview Landscape",      tag:"CAREER",         summary:"Types of AI interviews: coding, ML theory, system design, take-home. Company-specific formats." },
+      { day:2,  level:"Beginner",     topic:"Resume & LinkedIn for AI Engineers",   tag:"CAREER",         summary:"AI engineer resume template, quantifying ML impact, LinkedIn optimisation, recruiter messages." },
+      { day:3,  level:"Beginner",     topic:"Python for Coding Interviews",         tag:"CODING",         summary:"Arrays, strings, dicts, sets in Python. Time/space complexity. LeetCode Easy patterns." },
+      { day:4,  level:"Beginner",     topic:"Coding — Data Structures",            tag:"CODING",         summary:"Linked lists, trees, graphs, heaps, hash maps. Python implementations for interviews." },
+      { day:5,  level:"Beginner",     topic:"Coding — Algorithms",                 tag:"CODING",         summary:"Sorting, binary search, BFS/DFS, dynamic programming. LeetCode Medium for ML roles." },
+      { day:6,  level:"Beginner",     topic:"ML Theory — Supervised Learning Q&A", tag:"ML THEORY",      summary:"100 common supervised learning questions: regression, classification, evaluation metrics." },
+      { day:7,  level:"Beginner",     topic:"ML Theory — Deep Learning Q&A",       tag:"ML THEORY",      summary:"Neural network questions: backprop, activation functions, CNN/RNN/Transformer, training tips." },
+      { day:8,  level:"Beginner",     topic:"ML Theory — NLP & LLM Q&A",           tag:"ML THEORY",      summary:"Transformer architecture, attention, BERT vs GPT, fine-tuning, RAG, hallucination." },
+      { day:9,  level:"Beginner",     topic:"ML Theory — Statistics & Math Q&A",   tag:"ML THEORY",      summary:"Probability, linear algebra, calculus questions. Why regularisation? PCA? Overfitting?" },
+      { day:10, level:"Beginner",     topic:"Behavioural Interviews",               tag:"CAREER",         summary:"STAR method, common questions, answering about ML projects, failures, leadership, collaboration." },
+      // ── INTERMEDIATE: Days 11-20 — ML System Design ───────────────────────
+      { day:11, level:"Intermediate", topic:"ML System Design Framework",           tag:"SYSTEM DESIGN",  summary:"Requirements → Data → Features → Model → Serving → Monitoring → Scale. The full framework." },
+      { day:12, level:"Intermediate", topic:"System Design — Recommendation System",tag:"SYSTEM DESIGN",  summary:"Netflix/YouTube recs: candidate generation, ranking, diversity, A/B testing, cold start." },
+      { day:13, level:"Intermediate", topic:"System Design — Search Ranking",       tag:"SYSTEM DESIGN",  summary:"Google search ranking: query understanding, document retrieval, learning to rank, evaluation." },
+      { day:14, level:"Intermediate", topic:"System Design — Fraud Detection",      tag:"SYSTEM DESIGN",  summary:"Real-time fraud: feature engineering, model ensemble, threshold tuning, feedback loop." },
+      { day:15, level:"Intermediate", topic:"System Design — Ad Click Prediction",  tag:"SYSTEM DESIGN",  summary:"CTR prediction: sparse features, online learning, serving latency, A/B testing, metrics." },
+      { day:16, level:"Intermediate", topic:"System Design — LLM Chatbot",         tag:"SYSTEM DESIGN",  summary:"Production chatbot: RAG, guardrails, caching, latency SLA, cost management, evaluation." },
+      { day:17, level:"Intermediate", topic:"System Design — Computer Vision System",tag:"SYSTEM DESIGN", summary:"Real-time CV: detection pipeline, edge vs cloud, latency, camera ingestion, alerting." },
+      { day:18, level:"Intermediate", topic:"System Design — Content Moderation",   tag:"SYSTEM DESIGN",  summary:"Multi-modal moderation: text+image, ensemble, human-in-the-loop, appeal system." },
+      { day:19, level:"Intermediate", topic:"Mock Interview — ML Theory",           tag:"MOCK",           summary:"Practice 20 ML theory questions under time pressure. Record yourself. Self-evaluate." },
+      { day:20, level:"Intermediate", topic:"Mock Interview — System Design",       tag:"MOCK",           summary:"Design a full ML system in 45 minutes with a timer. Use the framework from Day 11." },
+      // ── ADVANCED: Days 21-30 — Career Strategy & Full Mock Loops ─────────
+      { day:21, level:"Advanced",     topic:"Mock Interview — Coding",              tag:"MOCK",           summary:"Solve 3 LeetCode Medium problems under interview conditions. Review and analyse solutions." },
+      { day:22, level:"Advanced",     topic:"Take-Home Projects — Strategy",        tag:"CAREER",         summary:"Common take-home formats, time management, what evaluators look for, presentation tips." },
+      { day:23, level:"Advanced",     topic:"Salary Negotiation for AI Roles",      tag:"CAREER",         summary:"Market rates for AI engineers, negotiation scripts, evaluating offers, equity, benefits." },
+      { day:24, level:"Advanced",     topic:"Company Research & Targeting",         tag:"CAREER",         summary:"Identifying target companies, researching ML teams, company AI maturity assessment." },
+      { day:25, level:"Advanced",     topic:"Networking for AI Engineers",          tag:"CAREER",         summary:"AI conferences, meetups, LinkedIn outreach, cold emails, referral programmes." },
+      { day:26, level:"Advanced",     topic:"Portfolio Presentation in Interviews", tag:"CAREER",         summary:"Storytelling your projects, technical depth questions, results framing, demo tips." },
+      { day:27, level:"Advanced",     topic:"Building Online Presence",             tag:"CAREER",         summary:"GitHub profile, technical blog, Twitter/X for AI, Kaggle, speaking at AI meetups." },
+      { day:28, level:"Advanced",     topic:"Interview Feedback & Iteration",       tag:"CAREER",         summary:"Analysing interview performance, identifying weak areas, targeted practice strategies." },
+      { day:29, level:"Advanced",     topic:"Mental Prep & Interview Confidence",   tag:"CAREER",         summary:"Managing anxiety, imposter syndrome, growth mindset, structured final preparation." },
+      { day:30, level:"Advanced",     topic:"Capstone — Full Mock Interview Day",   tag:"CAPSTONE",       summary:"Complete full-day mock: coding + ML theory + system design + behavioural. Full assessment." },
+    ],
+  },
+  {
+    id: 11, phase: 4, phaseTitle: "Career Launch",
+    title: "Interview Prep",
+    subtitle: "Cloud AI certifications, portfolio refinement, open source contributions",
+    icon: "🏆", color: "#f59e0b",
+    days: [
+      // ── BEGINNER: Days 1-10 — Certification Foundations ──────────────────
+      { day:1,  level:"Beginner",     topic:"Certification Strategy for AI Engineers",tag:"CERTS",        summary:"Which certs matter: AWS ML Specialty, GCP Pro ML, TF Developer, Azure AI Engineer." },
+      { day:2,  level:"Beginner",     topic:"AWS ML Specialty — Study Plan",        tag:"AWS",            summary:"Exam domains, study resources, practice tests, key services. 4-week study plan." },
+      { day:3,  level:"Beginner",     topic:"AWS ML Specialty — Practice: Data",    tag:"AWS",            summary:"Data engineering questions: S3, Glue, Kinesis, feature engineering, data prep." },
+      { day:4,  level:"Beginner",     topic:"AWS ML Specialty — Practice: Modelling",tag:"AWS",           summary:"Modelling questions: SageMaker algorithms, training, hyperparameter tuning, evaluation." },
+      { day:5,  level:"Beginner",     topic:"AWS ML Specialty — Practice: Deploy",  tag:"AWS",            summary:"Deployment questions: SageMaker endpoints, A/B testing, monitoring, security." },
+      { day:6,  level:"Beginner",     topic:"GCP Professional ML Engineer — Study", tag:"GCP",            summary:"Exam guide, key topics: Vertex AI, BigQuery ML, TensorFlow on GCP. Practice questions." },
+      { day:7,  level:"Beginner",     topic:"TensorFlow Developer Certificate",     tag:"TENSORFLOW",     summary:"TF Developer cert: model building, CV, NLP, time series. Free study guide walkthrough." },
+      { day:8,  level:"Beginner",     topic:"Portfolio Audit & Planning",           tag:"PORTFOLIO",      summary:"Audit all projects. Select 3 showcase projects. Define polish criteria for each." },
+      { day:9,  level:"Beginner",     topic:"Portfolio Project 1 — Polish",         tag:"PORTFOLIO",      summary:"README, architecture diagram, live demo, clean code, test coverage. Production quality." },
+      { day:10, level:"Beginner",     topic:"Portfolio Project 2 — Polish",         tag:"PORTFOLIO",      summary:"Model card, evaluation metrics, deployment, storytelling. Second showcase project." },
+      // ── INTERMEDIATE: Days 11-20 — Open Source, Writing, Community ────────
+      { day:11, level:"Intermediate", topic:"Portfolio Project 3 — Polish",         tag:"PORTFOLIO",      summary:"Polish third project. Focus on production quality and impact story." },
+      { day:12, level:"Intermediate", topic:"Technical Blog — Writing AI Projects", tag:"PORTFOLIO",      summary:"Write 3 blog posts about projects. Medium, Towards Data Science, personal site." },
+      { day:13, level:"Intermediate", topic:"Open Source Contributions",            tag:"OPEN SOURCE",    summary:"Finding good first issues, contributing to sklearn/HuggingFace/LangChain. PR process." },
+      { day:14, level:"Intermediate", topic:"Personal AI Website",                  tag:"PORTFOLIO",      summary:"Build personal website: bio, projects, blog, contact. GitHub Pages or Netlify." },
+      { day:15, level:"Intermediate", topic:"GitHub Profile Optimisation",          tag:"PORTFOLIO",      summary:"GitHub README, pinned repos, contribution graph, Actions demos, open source presence." },
+      { day:16, level:"Intermediate", topic:"Hugging Face Profile",                 tag:"PORTFOLIO",      summary:"Published models, datasets, Spaces demos. Community engagement on HF." },
+      { day:17, level:"Intermediate", topic:"Kaggle — Competition Strategy",        tag:"KAGGLE",         summary:"Top results on a Kaggle competition. Ensembling, feature engineering, LB strategy." },
+      { day:18, level:"Intermediate", topic:"Research Paper Implementation",        tag:"RESEARCH",       summary:"Implement a recent AI paper from scratch. Write up implementation. Publish on GitHub." },
+      { day:19, level:"Intermediate", topic:"Technical Presentations",              tag:"COMMUNICATION",  summary:"Conference submissions, AI meetup presentations, demo days, slide design for ML." },
+      { day:20, level:"Intermediate", topic:"LinkedIn Deep Optimisation",           tag:"CAREER",         summary:"Headline, About, experience, skills, featured section. SEO optimisation for recruiters." },
+      // ── ADVANCED: Days 21-30 — Final Certification & Career Polish ────────
+      { day:21, level:"Advanced",     topic:"Certification Practice Exams",         tag:"CERTS",          summary:"Full-length practice exams for your chosen cert. Score analysis, weak area targeting." },
+      { day:22, level:"Advanced",     topic:"Code Quality & Engineering Standards", tag:"ENGINEERING",    summary:"PEP8, black, flake8, mypy, type hints, docstrings, code review for ML engineers." },
+      { day:23, level:"Advanced",     topic:"AI Research Literacy",                 tag:"RESEARCH",       summary:"Reading arXiv, understanding benchmarks, avoiding hype, research vs production gap." },
+      { day:24, level:"Advanced",     topic:"Community Building",                   tag:"CAREER",         summary:"AI Discord/Slack, mentoring, giving back, AI community reputation building." },
+      { day:25, level:"Advanced",     topic:"Personal Brand as an AI Engineer",     tag:"CAREER",         summary:"Consistent online presence, content creation, thought leadership in AI community." },
+      { day:26, level:"Advanced",     topic:"Job Search Strategy",                  tag:"CAREER",         summary:"Target company list, application tracker, referral strategy, recruiter outreach." },
+      { day:27, level:"Advanced",     topic:"Negotiation Masterclass",              tag:"CAREER",         summary:"Compensation research, offer comparison, counter-offer scripts, equity, benefits." },
+      { day:28, level:"Advanced",     topic:"Portfolio Final Review",               tag:"REVIEW",         summary:"Final review of all portfolio materials. Get feedback from peers or mentors." },
+      { day:29, level:"Advanced",     topic:"Month 11 Review",                      tag:"REVIEW",         summary:"Certifications progress, portfolio status, job search readiness. Final polish." },
+      { day:30, level:"Advanced",     topic:"Capstone — Certification Exam Day",    tag:"CAPSTONE",       summary:"Take your chosen certification exam OR publish your showcase project. Major milestone." },
+    ],
+  },
+  {
+    id: 12, phase: 4, phaseTitle: "Career Launch",
+    title: "Certification & Portfolio",
+    subtitle: "Cloud AI certifications, portfolio polishing, open source and personal branding",
+    icon: "🏆", color: "#f59e0b",
+    days: [
+      // ── BEGINNER: Days 1-10 — Certification Prep ─────────────────────────
+      { day:1,  level:"Beginner",     topic:"Certification Strategy for AI Engineers", tag:"CERTS",        summary:"Which certs matter: AWS ML Specialty, GCP Pro ML, TF Developer, Azure AI Engineer. Picking yours." },
+      { day:2,  level:"Beginner",     topic:"AWS ML Specialty — Study Plan",           tag:"AWS",          summary:"Exam domains, study resources, practice tests, key SageMaker services. 4-week prep plan." },
+      { day:3,  level:"Beginner",     topic:"AWS ML Specialty — Data Engineering",     tag:"AWS",          summary:"S3, Glue, Kinesis, feature engineering questions. Data prep and storage for the exam." },
+      { day:4,  level:"Beginner",     topic:"AWS ML Specialty — Modelling & Serving",  tag:"AWS",          summary:"SageMaker algorithms, training, hyperparameter tuning, endpoints, monitoring questions." },
+      { day:5,  level:"Beginner",     topic:"GCP Professional ML Engineer",            tag:"GCP",          summary:"Exam guide, Vertex AI, BigQuery ML, TF on GCP. Study plan and practice questions." },
+      { day:6,  level:"Beginner",     topic:"TensorFlow Developer Certificate",        tag:"TENSORFLOW",   summary:"TF Dev cert: model building, CV, NLP, time series. Official study guide walkthrough." },
+      { day:7,  level:"Beginner",     topic:"Azure AI Engineer Certificate",           tag:"AZURE",        summary:"Azure AI-102: Cognitive Services, Form Recogniser, Azure ML. Exam prep and strategy." },
+      { day:8,  level:"Beginner",     topic:"Certification Practice Exams — Round 1",  tag:"CERTS",        summary:"Full-length practice exam for your chosen cert. Score analysis, weak area targeting." },
+      { day:9,  level:"Beginner",     topic:"Certification Practice Exams — Round 2",  tag:"CERTS",        summary:"Second full practice exam. Compare scores, fill gaps, review hardest question types." },
+      { day:10, level:"Beginner",     topic:"Exam Day Preparation",                    tag:"CERTS",        summary:"Final review, logistics, mental prep. Time management strategy for exam day." },
+      // ── INTERMEDIATE: Days 11-20 — Portfolio Building ─────────────────────
+      { day:11, level:"Intermediate", topic:"Portfolio Audit & Project Selection",     tag:"PORTFOLIO",    summary:"Audit all projects. Select 3 showcases. Define polish criteria, deployment targets, story." },
+      { day:12, level:"Intermediate", topic:"Portfolio Project 1 — Polish",            tag:"PORTFOLIO",    summary:"README, architecture diagram, live demo, clean code, tests, model card. Production quality." },
+      { day:13, level:"Intermediate", topic:"Portfolio Project 2 — Polish",            tag:"PORTFOLIO",    summary:"Second showcase: evaluation metrics, API, deployment, storytelling angle, demo recording." },
+      { day:14, level:"Intermediate", topic:"Portfolio Project 3 — Polish",            tag:"PORTFOLIO",    summary:"Third showcase: production quality, impact story, demo, documentation complete." },
+      { day:15, level:"Intermediate", topic:"Technical Blog Writing",                  tag:"PORTFOLIO",    summary:"Write 3 blog posts about your projects. Medium, Towards Data Science, personal site." },
+      { day:16, level:"Intermediate", topic:"Personal AI Website",                     tag:"PORTFOLIO",    summary:"Build personal website: bio, projects, blog, contact. GitHub Pages, Netlify, or Vercel." },
+      { day:17, level:"Intermediate", topic:"GitHub Profile Optimisation",             tag:"PORTFOLIO",    summary:"Profile README, pinned repos, contribution graph, Actions demos, open source presence." },
+      { day:18, level:"Intermediate", topic:"Hugging Face Profile",                    tag:"PORTFOLIO",    summary:"Published models, datasets, Spaces demos. Community engagement on HF hub." },
+      { day:19, level:"Intermediate", topic:"Kaggle Competition Results",              tag:"KAGGLE",       summary:"Push for a top result. Ensembling, feature engineering, leaderboard strategy." },
+      { day:20, level:"Intermediate", topic:"Research Paper Implementation",           tag:"RESEARCH",     summary:"Implement a recent AI paper from scratch. Write up implementation. Publish on GitHub." },
+      // ── ADVANCED: Days 21-30 — Open Source, Branding & Job Readiness ──────
+      { day:21, level:"Advanced",     topic:"Open Source Contributions",              tag:"OPEN SOURCE",  summary:"Finding good first issues, contributing to sklearn/HuggingFace/LangChain. Full PR process." },
+      { day:22, level:"Advanced",     topic:"Technical Presentations",                tag:"COMMUNICATION",summary:"Conference submissions, AI meetup talks, demo days, slide design for technical audiences." },
+      { day:23, level:"Advanced",     topic:"LinkedIn Deep Optimisation",             tag:"CAREER",       summary:"Headline, About, experience, skills, featured section. SEO for AI recruiter searches." },
+      { day:24, level:"Advanced",     topic:"Code Quality & Engineering Standards",   tag:"ENGINEERING",  summary:"PEP8, black, flake8, mypy, type hints, docstrings, code review practices for ML." },
+      { day:25, level:"Advanced",     topic:"Personal Brand as an AI Engineer",       tag:"CAREER",       summary:"Consistent online presence, content creation, thought leadership, AI community reputation." },
+      { day:26, level:"Advanced",     topic:"AI Research Literacy",                   tag:"RESEARCH",     summary:"Reading arXiv efficiently, understanding benchmarks, avoiding hype, research synthesis." },
+      { day:27, level:"Advanced",     topic:"Community Building & Mentoring",         tag:"CAREER",       summary:"AI Discord/Slack groups, mentoring others, giving back, building your community reputation." },
+      { day:28, level:"Advanced",     topic:"Portfolio Final Review",                 tag:"REVIEW",       summary:"Final portfolio review. Get feedback from peers or mentors. Polish anything remaining." },
+      { day:29, level:"Advanced",     topic:"Job Search Strategy",                    tag:"CAREER",       summary:"Target company list, application tracker, referral strategy, recruiter outreach templates." },
+      { day:30, level:"Advanced",     topic:"Capstone — Certification Exam Day",      tag:"CAPSTONE",     summary:"Take your chosen certification exam OR publish your final portfolio project. Major milestone." },
+    ],
+  },
+  {
+    id: 13, phase: 4, phaseTitle: "Career Launch",
+    title: "Final Capstone & Job Search",
+    subtitle: "Signature project, active applications, interviews, offers and landing your AI role",
+    icon: "🎯", color: "#10b981",
+    days: [
+      // ── BEGINNER: Days 1-10 — Build Your Signature Project ───────────────
+      { day:1,  level:"Beginner",     topic:"Signature Project — Planning",           tag:"CAPSTONE",     summary:"Scope your capstone: problem, tech stack, success metrics, architecture, 10-day timeline." },
+      { day:2,  level:"Beginner",     topic:"Capstone — Architecture & Repo Setup",   tag:"CAPSTONE",     summary:"System design, Git repo, Docker skeleton, CI/CD, directory structure, ADR document." },
+      { day:3,  level:"Beginner",     topic:"Capstone — Data Pipeline",               tag:"CAPSTONE",     summary:"Data collection, storage, processing pipeline. Clean, versioned, documented." },
+      { day:4,  level:"Beginner",     topic:"Capstone — Model Development",           tag:"CAPSTONE",     summary:"Baseline model, experimentation, improvements, ablations, final model selection." },
+      { day:5,  level:"Beginner",     topic:"Capstone — API & Backend",               tag:"CAPSTONE",     summary:"FastAPI backend, auth, async inference, error handling, comprehensive API docs." },
+      { day:6,  level:"Beginner",     topic:"Capstone — Frontend / Demo UI",          tag:"CAPSTONE",     summary:"Streamlit or Gradio demo UI. User-facing interface for your production AI system." },
+      { day:7,  level:"Beginner",     topic:"Capstone — Deployment & Infrastructure", tag:"CAPSTONE",     summary:"Cloud deployment, Docker, CI/CD pipeline, IaC. Full production infrastructure." },
+      { day:8,  level:"Beginner",     topic:"Capstone — Monitoring & Observability",  tag:"CAPSTONE",     summary:"Prometheus, Grafana, logging, alerts, model performance tracking dashboard." },
+      { day:9,  level:"Beginner",     topic:"Capstone — Testing & Documentation",     tag:"CAPSTONE",     summary:"Comprehensive tests, API docs, architecture decision records, full project README." },
+      { day:10, level:"Beginner",     topic:"Capstone — Launch & Blog Post",          tag:"CAPSTONE",     summary:"Final review, deploy to production, publish on GitHub, write technical blog post." },
+      // ── INTERMEDIATE: Days 11-20 — Active Job Search ──────────────────────
+      { day:11, level:"Intermediate", topic:"Active Applications — First 20",         tag:"JOB SEARCH",   summary:"Send first 20 targeted applications. Cover letters, tailored resumes, ATS tracking system." },
+      { day:12, level:"Intermediate", topic:"Recruiter Outreach Campaign",            tag:"JOB SEARCH",   summary:"LinkedIn messages, email outreach, referral requests. Templates and follow-up cadence." },
+      { day:13, level:"Intermediate", topic:"Interview Pipeline Management",          tag:"JOB SEARCH",   summary:"Managing multiple processes simultaneously. Scheduling, per-company prep, progress tracking." },
+      { day:14, level:"Intermediate", topic:"Phone Screen Preparation",               tag:"INTERVIEWS",   summary:"Common phone questions, 60-second pitch, demonstrating enthusiasm, clarifying next steps." },
+      { day:15, level:"Intermediate", topic:"Technical Interview — Coding",           tag:"INTERVIEWS",   summary:"Apply all Month 11 coding prep. LeetCode under pressure, think-aloud method." },
+      { day:16, level:"Intermediate", topic:"Technical Interview — ML & System Design",tag:"INTERVIEWS",  summary:"Apply all Month 11 ML theory and system design frameworks under real interview pressure." },
+      { day:17, level:"Intermediate", topic:"On-Site / Final Round Interviews",       tag:"INTERVIEWS",   summary:"Full loop: company research, Q&A prep, logistics, energy management, follow-up emails." },
+      { day:18, level:"Intermediate", topic:"Offer Evaluation Framework",             tag:"JOB SEARCH",   summary:"Evaluating offers: comp, equity, growth, team, tech stack, culture, mission alignment." },
+      { day:19, level:"Intermediate", topic:"Salary Negotiation",                     tag:"JOB SEARCH",   summary:"Counter-offer scripts, signing bonuses, remote work, equity/RSU negotiation tactics." },
+      { day:20, level:"Intermediate", topic:"Accepting & Transition Planning",        tag:"JOB SEARCH",   summary:"Accepting professionally, giving notice, 30/60/90 day plan for your first AI role." },
+      // ── ADVANCED: Days 21-30 — Your AI Career Begins ──────────────────────
+      { day:21, level:"Advanced",     topic:"First 30 Days in Your AI Role",          tag:"CAREER",       summary:"Onboarding strategy, meeting the team, understanding the codebase, delivering quick wins." },
+      { day:22, level:"Advanced",     topic:"Growing as an AI Engineer",              tag:"CAREER",       summary:"Career ladder: junior → senior → staff → principal. Growth mindset, sponsorship, impact." },
+      { day:23, level:"Advanced",     topic:"Continuing Education Plan",              tag:"CAREER",       summary:"Papers, courses, conferences. Staying current in fast-moving AI without burning out." },
+      { day:24, level:"Advanced",     topic:"Contributing Back — Mentoring Others",   tag:"COMMUNITY",    summary:"Mentoring aspiring AI engineers, writing tutorials, open source maintainership." },
+      { day:25, level:"Advanced",     topic:"Personal AI Research Direction",         tag:"FORWARD",      summary:"Identifying your niche, research interests, areas to specialise further in AI." },
+      { day:26, level:"Advanced",     topic:"AI Engineering Best Practices — Summary",tag:"REVIEW",       summary:"Consolidate all 13 months. Best practices across the full AI engineering stack." },
+      { day:27, level:"Advanced",     topic:"Future of AI Engineering",               tag:"FORWARD",      summary:"Multimodal AI, agents, AI safety, autonomous systems. Emerging trends and what to learn next." },
+      { day:28, level:"Advanced",     topic:"13-Month Journey Review",                tag:"REVIEW",       summary:"All four phases. Achievements, skills gained, lessons learned. What comes next." },
+      { day:29, level:"Advanced",     topic:"Celebration & Reflection",               tag:"MILESTONE",    summary:"You made it. 13 months of dedicated AI engineering study. Reflect on the journey." },
+      { day:30, level:"Advanced",     topic:"FINAL — You Are an AI Engineer",         tag:"CAPSTONE",     summary:"Present your signature project to the world. You are a fully-prepared AI Engineer. 🎉" },
+    ],
+  }
+];
+
+
+
+
+// ─── ROOT ─────────────────────────────────────────────────────────────────────
+const FONT_FAMILIES = [
+  { label: "Mono", value: "'IBM Plex Mono','Fira Code',monospace", preview: "Aa" },
+  { label: "Sans", value: "'IBM Plex Sans','Helvetica Neue',sans-serif", preview: "Aa" },
+  { label: "Serif", value: "'Times New Roman','Georgia',serif", preview: "Aa" },
+  { label: "OpenDys", value: "'OpenDyslexic','Comic Sans MS',cursive", preview: "Aa" },
+];
+
+const FONT_SIZES = [
+  { label: "XS", base: 11 },
+  { label: "S",  base: 13 },
+  { label: "M",  base: 15 },
+  { label: "L",  base: 18 },
+  { label: "XL", base: 22 },
+];
+
+// ─── LOCALSTORAGE HELPERS ─────────────────────────────────────────────────────
+// ─── PERSISTENT STORAGE (survives app close & reopen) ────────────────────────
+async function storageSave(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+}
+async function storageLoad(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw !== null ? JSON.parse(raw) : fallback;
+  } catch { return fallback; }
+}
+
+// localStorage kept as fast in-memory cache; persistent storage as source of truth
+function loadLS(key, fallback) {
+  try { const v = localStorage.getItem(key); return v !== null ? JSON.parse(v) : fallback; }
+  catch { return fallback; }
+}
+function saveLS(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+}
+
+function App() {
+  const [dark, setDarkRaw] = useState(() => loadLS("aicamp_dark", true));
+  const [screen, setScreen] = useState("home");
+  const [activeMonth, setActiveMonth] = useState(null);
+  const [activeDay, setActiveDay] = useState(null);
+  const [progress, setProgressRaw] = useState(() => loadLS("aicamp_progress", {}));
+  const [fontFamilyIdx, setFontFamilyIdxRaw] = useState(() => loadLS("aicamp_font", 0));
+  const [fontSizeIdx, setFontSizeIdxRaw] = useState(() => loadLS("aicamp_size", 1));
+  const [showSettings, setShowSettings] = useState(false);
+  const [storageReady, setStorageReady] = useState(false);
+  const { w } = useWindowSize();
+  const T = getTheme(dark);
+  const isDesktop = w >= 900;
+
+  const font = FONT_FAMILIES[fontFamilyIdx].value;
+  const baseSize = FONT_SIZES[fontSizeIdx].base;
+
+  // On mount: load all saved data from persistent storage (overrides localStorage cache)
+  useEffect(() => {
+    (async () => {
+      const [savedProgress, savedDark, savedFont, savedSize] = await Promise.all([
+        storageLoad("aicamp_progress", null),
+        storageLoad("aicamp_dark",     null),
+        storageLoad("aicamp_font",     null),
+        storageLoad("aicamp_size",     null),
+      ]);
+      if (savedProgress !== null) { setProgressRaw(savedProgress); saveLS("aicamp_progress", savedProgress); }
+      if (savedDark     !== null) { setDarkRaw(savedDark);         saveLS("aicamp_dark",     savedDark);     }
+      if (savedFont     !== null) { setFontFamilyIdxRaw(savedFont);saveLS("aicamp_font",     savedFont);     }
+      if (savedSize     !== null) { setFontSizeIdxRaw(savedSize);  saveLS("aicamp_size",     savedSize);     }
+      setStorageReady(true);
+    })();
+  }, []);
+
+  // Persist wrappers — write to both localStorage (fast) and persistent storage (durable)
+  const setDark = (v) => {
+    const val = typeof v === "function" ? v(dark) : v;
+    setDarkRaw(val); saveLS("aicamp_dark", val); storageSave("aicamp_dark", val);
+  };
+  const setFontFamilyIdx = (v) => {
+    const val = typeof v === "function" ? v(fontFamilyIdx) : v;
+    setFontFamilyIdxRaw(val); saveLS("aicamp_font", val); storageSave("aicamp_font", val);
+  };
+  const setFontSizeIdx = (v) => {
+    const val = typeof v === "function" ? v(fontSizeIdx) : v;
+    setFontSizeIdxRaw(val); saveLS("aicamp_size", val); storageSave("aicamp_size", val);
+  };
+
+  const markDone = (mId, dNum) => {
+    setProgressRaw(p => {
+      const next = { ...p, [mId+"-"+dNum]: true };
+      saveLS("aicamp_progress", next);
+      storageSave("aicamp_progress", next);
+      return next;
+    });
+  };
+
+  const unmarkDay = (mId, dNum) => {
+    setProgressRaw(p => {
+      const next = { ...p };
+      delete next[mId+"-"+dNum];
+      saveLS("aicamp_progress", next);
+      storageSave("aicamp_progress", next);
+      return next;
+    });
+  };
+
+  const goHome = () => { setScreen("home"); setActiveMonth(null); setActiveDay(null); };
+  const goMonth = (mId) => { setActiveMonth(mId); setActiveDay(null); setScreen("month"); };
+  const goDay = (dNum) => { setActiveDay(dNum); setScreen("day"); };
+
+  const sharedProps = { T, dark, font, baseSize, progress, isDesktop };
+
+  // Desktop: sidebar shows month day list when in month/day context
+  const showSidebar = isDesktop && screen !== "home" && activeMonth;
+  const month = activeMonth ? MONTHS[activeMonth - 1] : null;
+
+  // Show loading screen while persistent storage is being read
+  if (!storageReady) {
+    return (
+      <div style={{ minHeight:"100vh",background:"#0a0d12",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"20px" }}>
+        <div style={{ fontSize:"32px" }}>⚡</div>
+        <div style={{ color:"#22c55e",fontSize:"13px",letterSpacing:"3px" }}>LOADING YOUR PROGRESS...</div>
+        <div style={{ width:"200px",height:"3px",background:"#1e2433",borderRadius:"2px",overflow:"hidden" }}>
+          <div style={{ height:"100%",background:"#22c55e",borderRadius:"2px",animation:"load 1s ease infinite",width:"40%" }} />
+        </div>
+        <style>{`@keyframes load{0%{transform:translateX(-100%)}100%{transform:translateX(350%)}}`}</style>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ minHeight:"100vh", background:T.bg, color:T.text, fontFamily:font, fontSize:`${baseSize}px`, transition:"background .3s, color .3s" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+        *{box-sizing:border-box;margin:0;padding:0}
+        button{cursor:pointer;font-family:inherit}
+        textarea,input{font-family:inherit}
+        ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:#33446688;border-radius:4px}
+        .fade{animation:fadeUp .25s ease}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+        .day-row:hover{opacity:1!important;border-color:inherit}
+        .nav-btn:hover{opacity:.75}
+      `}</style>
+
+      {/* ── TOP NAV ── */}
+      <nav style={{ position:"sticky",top:0,zIndex:100,background:T.surface,borderBottom:`1px solid ${T.border}`,padding:`0 ${isDesktop?"28px":"14px"}`,height:isDesktop?"56px":"50px",display:"flex",alignItems:"center",gap:isDesktop?"16px":"8px" }}>
+        {/* Logo */}
+        <button onClick={goHome} className="nav-btn" style={{ background:"none",border:"none",color:T.text,fontSize:`${baseSize + 1}px`,fontWeight:"700",display:"flex",alignItems:"center",gap:"6px",whiteSpace:"nowrap",flexShrink:0 }}>
+          ⚡ {isDesktop ? "AICAMP" : "AICAMP"}
+        </button>
+
+        {/* Breadcrumb — desktop only */}
+        {isDesktop && screen !== "home" && (
+          <div style={{ display:"flex",alignItems:"center",gap:"6px",fontSize:`${baseSize - 2}px`,color:T.muted }}>
+            <span style={{ color:T.border }}>|</span>
+            <button onClick={goHome} className="nav-btn" style={{ background:"none",border:"none",color:T.muted,fontSize:`${baseSize - 2}px` }}>Home</button>
+            {activeMonth && <>
+              <span>›</span>
+              <button onClick={() => goMonth(activeMonth)} className="nav-btn" style={{ background:"none",border:"none",color:T.muted,fontSize:`${baseSize - 2}px` }}>{month?.title}</button>
+            </>}
+            {screen === "day" && activeDay && <>
+              <span>›</span>
+              <span style={{ color:T.text }}>{month?.days[activeDay-1]?.topic}</span>
+            </>}
+          </div>
+        )}
+
+        <div style={{ flex:1 }} />
+
+        {/* Right controls */}
+        <div style={{ display:"flex",alignItems:"center",gap:"6px" }}>
+          {/* Dark/Light */}
+          <button onClick={() => setDark(d=>!d)} className="nav-btn" style={{ background:T.card,border:`1px solid ${T.border}`,color:T.text,padding:`5px ${isDesktop?"14px":"8px"}`,fontSize:`${baseSize - 2}px`,borderRadius:"4px" }}>
+            {dark ? (isDesktop ? "☀ Light" : "☀") : (isDesktop ? "◑ Dark" : "◑")}
+          </button>
+
+          {/* A- A+ */}
+          <button onClick={() => setFontSizeIdx(i=>Math.max(0,i-1))} className="nav-btn" style={{ background:T.card,border:`1px solid ${T.border}`,color:T.text,width:"30px",height:"30px",borderRadius:"4px",fontSize:"13px" }}>A−</button>
+          <button onClick={() => setFontSizeIdx(i=>Math.min(FONT_SIZES.length-1,i+1))} className="nav-btn" style={{ background:T.card,border:`1px solid ${T.border}`,color:T.text,width:"30px",height:"30px",borderRadius:"4px",fontSize:"15px",fontWeight:"700" }}>A+</button>
+
+          {/* Settings */}
+          <button onClick={() => setShowSettings(s=>!s)} className="nav-btn" style={{ background:showSettings?T.border:T.card,border:`1px solid ${T.border}`,color:T.text,width:"30px",height:"30px",borderRadius:"4px",fontSize:"15px" }}>⚙</button>
+        </div>
+      </nav>
+
+      {/* ── SETTINGS PANEL ── */}
+      {showSettings && (
+        <>
+          <div onClick={() => setShowSettings(false)} style={{ position:"fixed",inset:0,zIndex:150 }} />
+          <div onClick={e=>e.stopPropagation()} style={{ position:"fixed",top:"62px",right:"12px",zIndex:200,background:T.surface,border:`1px solid ${T.border}`,padding:"22px",width:"clamp(260px,88vw,340px)",boxShadow:"0 12px 40px #00000055",borderRadius:"6px" }}>
+            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"18px" }}>
+              <span style={{ fontSize:`${baseSize}px`,fontWeight:"700" }}>⚙ Display Settings</span>
+              <button onClick={() => setShowSettings(false)} style={{ background:"none",border:"none",color:T.muted,fontSize:"20px",lineHeight:1 }}>×</button>
+            </div>
+
+            <div style={{ marginBottom:"18px" }}>
+              <div style={{ fontSize:`${baseSize - 3}px`,letterSpacing:"2px",color:T.muted,marginBottom:"10px" }}>FONT SIZE</div>
+              <div style={{ display:"flex",gap:"5px" }}>
+                {FONT_SIZES.map((fs,i) => (
+                  <button key={i} onClick={() => setFontSizeIdx(i)} style={{ flex:1,padding:"8px 4px",background:fontSizeIdx===i?"#22c55e":T.card,color:fontSizeIdx===i?"#fff":T.text,border:`1px solid ${fontSizeIdx===i?"#22c55e":T.border}`,fontSize:`${fs.base-2}px`,borderRadius:"4px",transition:"all .15s" }}>
+                    {fs.label}
+                  </button>
+                ))}
+              </div>
+              <div style={{ display:"flex",gap:"6px",marginTop:"8px" }}>
+                <button onClick={() => setFontSizeIdx(i=>Math.max(0,i-1))} style={{ flex:1,padding:"10px",background:T.card,border:`1px solid ${T.border}`,color:T.text,fontSize:`${baseSize}px`,borderRadius:"4px" }}>A− Smaller</button>
+                <button onClick={() => setFontSizeIdx(i=>Math.min(FONT_SIZES.length-1,i+1))} style={{ flex:1,padding:"10px",background:T.card,border:`1px solid ${T.border}`,color:T.text,fontSize:`${baseSize+2}px`,fontWeight:"700",borderRadius:"4px" }}>A+ Larger</button>
+              </div>
+            </div>
+
+            <div style={{ marginBottom:"18px" }}>
+              <div style={{ fontSize:`${baseSize - 3}px`,letterSpacing:"2px",color:T.muted,marginBottom:"10px" }}>FONT STYLE</div>
+              <div style={{ display:"flex",flexDirection:"column",gap:"6px" }}>
+                {FONT_FAMILIES.map((ff,i) => (
+                  <button key={i} onClick={() => setFontFamilyIdx(i)} style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px",background:fontFamilyIdx===i?"#22c55e18":T.card,color:fontFamilyIdx===i?"#22c55e":T.text,border:`1px solid ${fontFamilyIdx===i?"#22c55e55":T.border}`,fontFamily:ff.value,fontSize:`${baseSize}px`,borderRadius:"4px",transition:"all .15s" }}>
+                    <span>{ff.label==="OpenDys"?"OpenDyslexic":ff.label==="Mono"?"Monospace":ff.label==="Sans"?"Sans-Serif":"Times New Roman"}</span>
+                    <span style={{ opacity:.6,fontSize:`${baseSize+2}px` }}>{ff.preview}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ marginBottom:"16px" }}>
+              <div style={{ fontSize:`${baseSize - 3}px`,letterSpacing:"2px",color:T.muted,marginBottom:"10px" }}>THEME</div>
+              <div style={{ display:"flex",gap:"6px" }}>
+                <button onClick={() => setDark(true)} style={{ flex:1,padding:"10px",background:dark?"#1e2433":"transparent",color:dark?"#e2e8f4":T.text,border:`1px solid ${dark?"#22c55e55":T.border}`,borderRadius:"4px",fontSize:`${baseSize-1}px` }}>◑ Dark</button>
+                <button onClick={() => setDark(false)} style={{ flex:1,padding:"10px",background:!dark?"#dde3ef":"transparent",color:!dark?"#1a202c":T.text,border:`1px solid ${!dark?"#22c55e55":T.border}`,borderRadius:"4px",fontSize:`${baseSize-1}px` }}>☀ Light</button>
+              </div>
+            </div>
+
+            <div style={{ paddingTop:"14px",borderTop:`1px solid ${T.border}`,fontSize:`${baseSize-3}px`,color:T.muted,textAlign:"center" }}>
+              Preview: <span style={{ fontFamily:font,fontSize:`${baseSize}px`,color:T.text }}>The quick brown fox jumps</span>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── BODY LAYOUT ── */}
+      <div style={{ display:"flex", minHeight:`calc(100vh - ${isDesktop?"56px":"50px"})` }}>
+
+        {/* ── DESKTOP SIDEBAR ── */}
+        {showSidebar && (
+          <aside style={{ width:"280px",flexShrink:0,borderRight:`1px solid ${T.border}`,background:T.surface,position:"sticky",top:isDesktop?"56px":"50px",height:`calc(100vh - ${isDesktop?"56px":"50px"})`,overflowY:"auto",padding:"20px 0" }}>
+            {/* Sidebar header */}
+            <div style={{ padding:"0 16px 16px",borderBottom:`1px solid ${T.border}` }}>
+              <div style={{ fontSize:`${baseSize-4}px`,letterSpacing:"2px",color:month.color,marginBottom:"4px" }}>PHASE {month.phase} · MONTH {month.id}</div>
+              <div style={{ fontSize:`${baseSize+2}px`,fontWeight:"700",fontFamily:font }}>{month.icon} {month.title}</div>
+              <div style={{ marginTop:"10px",height:"3px",background:T.border,borderRadius:"2px" }}>
+                <div style={{ height:"100%",width:`${Math.round(month.days.filter(d=>progress[activeMonth+"-"+d.day]).length/month.days.length*100)}%`,background:month.color,transition:"width .5s",borderRadius:"2px" }} />
+              </div>
+              <div style={{ fontSize:`${baseSize-4}px`,color:T.muted,marginTop:"6px" }}>
+                {month.days.filter(d=>progress[activeMonth+"-"+d.day]).length}/{month.days.length} days complete
+              </div>
+            </div>
+
+            {/* Day list */}
+            <div style={{ padding:"8px 0" }}>
+              {[
+                { label:"Beginner", days: month.days.filter(d=>d.level==="Beginner") },
+                { label:"Intermediate", days: month.days.filter(d=>d.level==="Intermediate") },
+                { label:"Advanced", days: month.days.filter(d=>d.level==="Advanced"&&d.tag!=="CAPSTONE") },
+                { label:"Capstone", days: month.days.filter(d=>d.tag==="CAPSTONE") },
+              ].filter(b=>b.days.length>0).map((block,bi) => (
+                <div key={bi}>
+                  <div style={{ padding:"10px 16px 4px",fontSize:`${baseSize-5}px`,letterSpacing:"2px",color:LEVEL_COLOR[block.label]||month.color,fontWeight:"700" }}>{block.label.toUpperCase()}</div>
+                  {block.days.map(day => {
+                    const isDone = progress[activeMonth+"-"+day.day];
+                    const isActive = activeDay === day.day && screen === "day";
+                    return (
+                      <button key={day.day} onClick={() => goDay(day.day)}
+                        style={{ display:"flex",alignItems:"center",gap:"10px",width:"100%",padding:"9px 16px",background:isActive?`${month.color}18`:"transparent",borderLeft:isActive?`3px solid ${month.color}`:"3px solid transparent",border:"none",color:isActive?month.color:T.text,textAlign:"left",transition:"all .15s",opacity:isDone&&!isActive?.65:1 }}>
+                        <div style={{ width:"24px",height:"24px",display:"flex",alignItems:"center",justifyContent:"center",fontSize:`${baseSize-3}px`,fontWeight:"700",flexShrink:0,background:isDone?month.color:isActive?`${month.color}22`:T.card,color:isDone?"#fff":month.color,borderRadius:"3px",border:`1px solid ${isDone||isActive?"transparent":month.color+"33"}` }}>
+                          {isDone?"✓":day.day}
+                        </div>
+                        <div style={{ flex:1,minWidth:0 }}>
+                          <div style={{ fontSize:`${baseSize-2}px`,fontWeight:isActive?"600":"400",lineHeight:1.3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontFamily:font }}>{day.topic}</div>
+                          <div style={{ fontSize:`${baseSize-5}px`,opacity:.4,marginTop:"1px" }}>{day.tag}</div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </aside>
+        )}
+
+        {/* ── MAIN CONTENT ── */}
+        <main style={{ flex:1, minWidth:0, overflowX:"hidden" }}>
+          <div className="fade" key={screen+activeMonth+activeDay}>
+            {screen === "home" && (
+              <Home {...sharedProps} onSelect={mId => goMonth(mId)} />
+            )}
+            {screen === "month" && activeMonth && (
+              <Month {...sharedProps} month={month} onDay={goDay} onBack={goHome} />
+            )}
+            {screen === "day" && activeMonth && activeDay && (
+              <Day {...sharedProps}
+                month={month}
+                dayData={month.days[activeDay-1]}
+                isDone={!!progress[activeMonth+"-"+activeDay]}
+                onBack={() => setScreen("month")}
+                onBackHome={goHome}
+                onComplete={() => markDone(activeMonth, activeDay)}
+                onUnmark={() => unmarkDay(activeMonth, activeDay)}
+              />
+            )}
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+// ─── HOME ─────────────────────────────────────────────────────────────────────
+function Home({ T, dark, progress, font, baseSize, isDesktop, onSelect }) {
+  const totalDays = MONTHS.reduce((a,m) => a + m.days.length, 0);
+  const totalDone = MONTHS.reduce((a,m) => a + m.days.filter(d=>progress[m.id+"-"+d.day]).length, 0);
+  const totalPct  = Math.round(totalDone / totalDays * 100);
+
+  return (
+    <div style={{ maxWidth: isDesktop?"1100px":"880px", margin:"0 auto", padding: isDesktop?"60px 48px":"40px 20px" }}>
+      <div style={{ display: isDesktop?"grid":"block", gridTemplateColumns:"1fr 1fr", gap:"60px", alignItems:"center", marginBottom: isDesktop?"40px":"32px" }}>
+        <div>
+          <div style={{ fontSize:`${baseSize-4}px`,letterSpacing:"4px",color:"#22c55e",marginBottom:"14px" }}>▸ AI ENGINEER ROADMAP — 13 MONTHS</div>
+          <h1 style={{ fontSize:`clamp(${baseSize+10}px,4vw,${baseSize+28}px)`,fontWeight:"700",lineHeight:1.08,marginBottom:"16px",fontFamily:font,letterSpacing:"-1.5px" }}>
+            From zero to<br /><span style={{ opacity:.3 }}>AI Engineer.</span>
+          </h1>
+          <p style={{ fontSize:`${baseSize}px`,opacity:.5,lineHeight:1.8,fontFamily:font,marginBottom: isDesktop?"0":"32px",maxWidth:"420px" }}>
+            390 days · 4 phases · 13 months of structured learning. Python, ML, Deep Learning, CV, NLP, Deployment, MLOps, Cloud, and Career Launch.
+          </p>
+        </div>
+        <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px" }}>
+          {[["📖","Lesson","In-depth theory"],["💻","Exercises","3 progressive challenges"],["❓","Quiz","5 questions, instant results"],["🔨","Project","Build something real"],["🧪","Lab","Hands-on tools & setup"],["📩","Notes","Reflect & track progress"]].map(([icon,label,desc],i) => (
+            <div key={i} style={{ background:T.surface,border:`1px solid ${T.border}`,padding:"14px",borderRadius:"4px" }}>
+              <div style={{ fontSize:`${baseSize+6}px`,marginBottom:"4px" }}>{icon}</div>
+              <div style={{ fontSize:`${baseSize}px`,fontWeight:"600",marginBottom:"2px",fontFamily:font }}>{label}</div>
+              <div style={{ fontSize:`${baseSize-3}px`,opacity:.45,fontFamily:font,lineHeight:1.5 }}>{desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Overall Progress Bar ── */}
+      <div style={{ background:T.surface,border:`1px solid ${T.border}`,padding:"20px 24px",marginBottom:"40px" }}>
+        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"10px" }}>
+          <div>
+            <span style={{ fontSize:`${baseSize-4}px`,letterSpacing:"3px",color:"#22c55e" }}>OVERALL PROGRESS</span>
+          </div>
+          <div style={{ display:"flex",alignItems:"baseline",gap:"6px" }}>
+            <span style={{ fontSize:`${baseSize+6}px`,fontWeight:"700",color:"#22c55e" }}>{totalPct}%</span>
+            <span style={{ fontSize:`${baseSize-2}px`,opacity:.4 }}>{totalDone}/{totalDays} days</span>
+          </div>
+        </div>
+        <div style={{ height:"8px",background:T.border,borderRadius:"4px" }}>
+          <div style={{ height:"100%",borderRadius:"4px",background:"linear-gradient(90deg,#22c55e,#3b82f6)",width:`${totalPct}%`,transition:"width .8s ease" }} />
+        </div>
+        {totalPct === 100 && (
+          <div style={{ textAlign:"center",marginTop:"12px",fontSize:`${baseSize}px`,color:"#22c55e",fontWeight:"700" }}>
+            🎉 Congratulations — You are an AI Engineer!
+          </div>
+        )}
+      </div>
+
+      {[1,2,3,4].map(phase => {
+        const phaseMonths = MONTHS.filter(m => m.phase === phase);
+        const phaseColors = { 1:"#22c55e", 2:"#3b82f6", 3:"#f97316", 4:"#d946ef" };
+        const phaseLabels = { 1:"PHASE 1 — CORE FOUNDATIONS (Months 1–4)", 2:"PHASE 2 — SPECIALISATION & DEEP DIVE (Months 5–7)", 3:"PHASE 3 — AI IN PRODUCTION (Months 8–10)", 4:"PHASE 4 — CAREER LAUNCH (Months 11–13)" };
+        const phaseDone  = phaseMonths.reduce((acc,m) => acc + m.days.filter(d=>progress[m.id+"-"+d.day]).length, 0);
+        const phaseTotal = phaseMonths.reduce((acc,m) => acc + m.days.length, 0);
+        return (
+          <div key={phase} style={{ marginBottom:"48px" }}>
+            <div style={{ display:"flex",alignItems:"center",gap:"12px",marginBottom:"20px" }}>
+              <div style={{ fontSize:`${baseSize-4}px`,letterSpacing:"3px",color:phaseColors[phase],fontWeight:"700" }}>{phaseLabels[phase]}</div>
+              <div style={{ flex:1,height:"1px",background:T.border }} />
+              <div style={{ fontSize:`${baseSize-3}px`,opacity:.4 }}>{phaseDone}/{phaseTotal} days</div>
+            </div>
+            <div style={{ display:"grid",gridTemplateColumns: isDesktop?"1fr 1fr 1fr":"1fr",gap:"16px" }}>
+              {phaseMonths.map(m => {
+                const done = m.days.filter(d=>progress[m.id+"-"+d.day]).length;
+                const pct  = Math.round(done/m.days.length*100);
+                return (
+                  <button key={m.id} onClick={() => onSelect(m.id)}
+                    style={{ background:T.surface,border:`1px solid ${T.border}`,padding:"24px",textAlign:"left",color:T.text,position:"relative",overflow:"hidden",transition:"border-color .2s,transform .2s",borderRadius:"4px" }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor=m.color; e.currentTarget.style.transform="translateY(-2px)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor=T.border; e.currentTarget.style.transform="translateY(0)"; }}>
+                    <div style={{ position:"absolute",top:0,left:0,right:0,height:"3px",background:`linear-gradient(90deg,${m.color} ${pct}%,${T.border} ${pct}%)` }} />
+                    <div style={{ display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:"12px" }}>
+                      <div style={{ fontSize:`${baseSize+14}px` }}>{m.icon}</div>
+                      <div style={{ fontSize:`${baseSize-3}px`,opacity:.35,letterSpacing:"2px" }}>M{m.id}</div>
+                    </div>
+                    <div style={{ fontSize:`${baseSize-4}px`,letterSpacing:"2px",color:m.color,marginBottom:"4px" }}>MONTH {m.id}</div>
+                    <div style={{ fontSize:`${baseSize+2}px`,fontWeight:"700",marginBottom:"4px",fontFamily:font,lineHeight:1.3 }}>{m.title}</div>
+                    <div style={{ fontSize:`${baseSize-3}px`,opacity:.4,marginBottom:"16px",fontFamily:font,lineHeight:1.5 }}>{m.subtitle}</div>
+                    <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center" }}>
+                      <span style={{ fontSize:`${baseSize-3}px`,opacity:.35 }}>{done}/{m.days.length} days</span>
+                      <span style={{ fontSize:`${baseSize}px`,color:m.color,fontWeight:"700" }}>{pct}%</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── MONTH ────────────────────────────────────────────────────────────────────
+function Month({ T, font, baseSize, isDesktop, month, progress, onDay, onBack }) {
+  const blocks = [
+    { label:"Beginner",     days: month.days.filter(d => d.level==="Beginner") },
+    { label:"Intermediate", days: month.days.filter(d => d.level==="Intermediate") },
+    { label:"Advanced",     days: month.days.filter(d => d.level==="Advanced" && d.tag!=="CAPSTONE") },
+    { label:"Capstone",     days: month.days.filter(d => d.tag==="CAPSTONE") },
+  ].filter(b => b.days.length > 0);
+
+  const done  = month.days.filter(d => progress[month.id+"-"+d.day]).length;
+  const pct   = Math.round(done / month.days.length * 100);
+
+  return (
+    <div style={{ maxWidth: isDesktop?"none":"840px", margin:"0 auto", padding: isDesktop?"40px 48px":"24px 16px" }}>
+
+      {/* ── Back button ── */}
+      <button onClick={onBack}
+        style={{ display:"inline-flex",alignItems:"center",gap:"6px",background:"none",border:`1px solid ${T.border}`,color:T.muted,padding:"7px 14px",fontSize:`${baseSize-2}px`,marginBottom:"24px",cursor:"pointer",transition:"all .2s" }}
+        onMouseEnter={e=>{e.currentTarget.style.borderColor=month.color;e.currentTarget.style.color=month.color;}}
+        onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}>
+        ← Dashboard
+      </button>
+
+      <div style={{ marginBottom:"36px" }}>
+        <div style={{ fontSize:`${baseSize-4}px`,letterSpacing:"3px",color:month.color,marginBottom:"8px" }}>PHASE {month.phase} · MONTH {month.id}</div>
+        <h2 style={{ fontSize:`clamp(${baseSize+8}px,4vw,${baseSize+22}px)`,fontWeight:"700",marginBottom:"6px",fontFamily:font,letterSpacing:"-0.5px" }}>{month.icon} {month.title}</h2>
+        <p style={{ fontSize:`${baseSize-2}px`,opacity:.45,fontFamily:font }}>{month.subtitle}</p>
+
+        {/* Progress bar + stats */}
+        <div style={{ marginTop:"20px",background:T.card,border:`1px solid ${T.border}`,padding:"16px 20px" }}>
+          <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"10px" }}>
+            <span style={{ fontSize:`${baseSize-3}px`,opacity:.5 }}>{done} of {month.days.length} days complete</span>
+            <span style={{ fontSize:`${baseSize+2}px`,fontWeight:"700",color:month.color }}>{pct}%</span>
+          </div>
+          <div style={{ height:"6px",background:T.border,borderRadius:"3px" }}>
+            <div style={{ height:"100%",width:`${pct}%`,background:month.color,transition:"width .6s",borderRadius:"3px" }} />
+          </div>
+          {pct === 100 && (
+            <div style={{ marginTop:"10px",textAlign:"center",fontSize:`${baseSize-2}px`,color:month.color,fontWeight:"700" }}>
+              🎉 Month Complete!
+            </div>
+          )}
+        </div>
+      </div>
+
+      {blocks.map((block, bi) => (
+        <div key={bi} style={{ marginBottom:"28px" }}>
+          <div style={{ display:"flex",alignItems:"center",gap:"10px",marginBottom:"10px" }}>
+            <span style={{ fontSize:`${baseSize - 5}px`,letterSpacing:"3px",color:LEVEL_COLOR[block.label]||month.color,fontWeight:"700" }}>{block.label.toUpperCase()}</span>
+            <div style={{ flex:1,height:"1px",background:T.border }} />
+            <span style={{ fontSize:`${baseSize - 5}px`,opacity:.3 }}>{block.days.length} days</span>
+          </div>
+          <div style={{ display:"flex",flexDirection:"column",gap:"5px" }}>
+            {block.days.map(day => {
+              const done = progress[month.id+"-"+day.day];
+              const lc = LEVEL_COLOR[day.level]||month.color;
+              return (
+                <button key={day.day} onClick={() => onDay(day.day)}
+                  style={{ display:"flex",alignItems:"center",gap:"14px",background:done?`${month.color}0d`:T.surface,border:`1px solid ${done?month.color+"44":T.border}`,padding:"13px 16px",textAlign:"left",color:T.text,transition:"all .15s" }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor=month.color+"66"}
+                  onMouseLeave={e => e.currentTarget.style.borderColor=done?month.color+"44":T.border}>
+                  <div style={{ width:"34px",height:"34px",display:"flex",alignItems:"center",justifyContent:"center",fontSize:`${baseSize - 2}px`,fontWeight:"700",flexShrink:0,background:done?month.color:T.card,color:done?"#fff":month.color,border:`1px solid ${done?"transparent":month.color+"33"}`,borderRadius:"2px" }}>
+                    {done?"✓":day.day}
+                  </div>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontSize:`${baseSize + 1}px`,fontWeight:"600",marginBottom:"2px",fontFamily:font }}>{day.topic}</div>
+                    <div style={{ fontSize:`${baseSize - 3}px`,opacity:.4 }}>{day.summary.substring(0,65)}...</div>
+                  </div>
+                  <div style={{ display:"flex",flexDirection:"column",alignItems:"flex-end",gap:"3px",flexShrink:0 }}>
+                    <span style={{ fontSize:`${baseSize - 5}px`,padding:"2px 7px",border:`1px solid ${lc}44`,color:lc }}>{day.level}</span>
+                    <span style={{ fontSize:`${baseSize - 6}px`,opacity:.25,letterSpacing:"1px" }}>{day.tag}</span>
+                  </div>
+                  <span style={{ color:T.muted,fontSize:`${baseSize + 1}px` }}>›</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── DAY ──────────────────────────────────────────────────────────────────────
+function Day({ T, dark, font, baseSize, isDesktop, month, dayData, isDone, onBack, onBackHome, onComplete, onUnmark }) {
+  const [tab, setTab] = useState("lesson");
+  const [exIdx, setExIdx] = useState(0);
+  const [quizAnswers, setQuizAnswers] = useState({});
+  const [quizDone, setQuizDone] = useState(false);
+  const [code, setCode] = useState("");
+  const [selfReview, setSelfReview] = useState("");
+  const color = month.color;
+  const lc = LEVEL_COLOR[dayData.level] || color;
+  const lesson = getLesson(month.id, dayData.day, dayData, month.title);
+
+  const quizScore = quizDone ? lesson.quiz.filter((q, i) => quizAnswers[i]?.startsWith(q.correct)).length : 0;
+
+  return (
+    <div style={{ maxWidth: isDesktop?"none":"800px", margin:"0 auto", padding: isDesktop?"36px 48px 100px":"24px 16px 100px" }}>
+
+      {/* ── Back navigation ── */}
+      <div style={{ display:"flex",alignItems:"center",gap:"10px",marginBottom:"20px" }}>
+        <button onClick={onBack}
+          style={{ display:"inline-flex",alignItems:"center",gap:"5px",background:"none",border:`1px solid ${T.border}`,color:T.muted,padding:"7px 13px",fontSize:`${baseSize-2}px`,cursor:"pointer",transition:"all .2s" }}
+          onMouseEnter={e=>{e.currentTarget.style.borderColor=color;e.currentTarget.style.color=color;}}
+          onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}>
+          ← {month.title}
+        </button>
+        <button onClick={onBackHome}
+          style={{ display:"inline-flex",alignItems:"center",gap:"5px",background:"none",border:`1px solid ${T.border}`,color:T.muted,padding:"7px 13px",fontSize:`${baseSize-2}px`,cursor:"pointer",transition:"all .2s" }}
+          onMouseEnter={e=>{e.currentTarget.style.borderColor=color;e.currentTarget.style.color=color;}}
+          onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}>
+          ⌂ Dashboard
+        </button>
+      </div>
+
+      {/* Header */}
+      <div style={{ display:"flex",alignItems:"flex-start",gap:"14px",marginBottom:"24px",flexWrap:"wrap" }}>
+        <div style={{ flex:1 }}>
+          <div style={{ display:"flex",alignItems:"center",gap:"8px",marginBottom:"6px",flexWrap:"wrap" }}>
+            <span style={{ fontSize:`${baseSize-5}px`,letterSpacing:"2px",padding:"3px 9px",border:`1px solid ${lc}55`,color:lc }}>{dayData.level}</span>
+            <span style={{ fontSize:`${baseSize-5}px`,letterSpacing:"2px",color:T.muted }}>{dayData.tag}</span>
+            <span style={{ fontSize:`${baseSize-5}px`,color:T.muted }}>· Day {dayData.day} of {month.days.length}</span>
+          </div>
+          <h1 style={{ fontSize:`clamp(${baseSize+4}px,3vw,${baseSize+14}px)`,fontWeight:"700",fontFamily:font,letterSpacing:"-0.3px" }}>{dayData.topic}</h1>
+        </div>
+        {isDone && (
+          <div style={{ display:"flex",flexDirection:"column",alignItems:"flex-end",gap:"6px" }}>
+            <span style={{ fontSize:`${baseSize-4}px`,color:color,background:`${color}15`,border:`1px solid ${color}44`,padding:"5px 12px",flexShrink:0 }}>✓ COMPLETED</span>
+            <button onClick={onUnmark}
+              style={{ fontSize:`${baseSize-5}px`,background:"none",border:`1px solid ${T.border}`,color:T.muted,padding:"3px 9px",cursor:"pointer" }}
+              onMouseEnter={e=>e.currentTarget.style.color="#ef4444"}
+              onMouseLeave={e=>e.currentTarget.style.color=T.muted}>
+              ✕ Unmark
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display:"flex",gap:"2px",borderBottom:`1px solid ${T.border}`,marginBottom:"24px",flexWrap:"wrap" }}>
+        {[["lesson","📖 Lesson"],["exercises","💻 Exercises"],["quiz","❓ Quiz"],["project","🔨 Project"],["lab","🧪 Lab"],["notes","📩 My Notes"]].map(([id,label]) => (
+          <button key={id} onClick={() => setTab(id)}
+            style={{ background:tab===id?`${color}15`:"transparent",border:"none",borderBottom:tab===id?`2px solid ${color}`:"2px solid transparent",color:tab===id?color:T.muted,padding:"9px 12px",fontSize:`${baseSize-2}px`,transition:"all .15s",marginBottom:"-1px",fontWeight:tab===id?"600":"400",fontFamily:font }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── LESSON ── */}
+      {tab === "lesson" && (
+        <div className="fade">
+          {/* Welcome */}
+          <div style={{ background:T.surface,border:`1px solid ${T.border}`,borderLeft:`4px solid ${color}`,padding:"18px 20px",marginBottom:"20px" }}>
+            <div style={{ fontSize:`${baseSize - 4}px`,letterSpacing:"2px",color:color,marginBottom:"8px" }}>DAY {dayData.day} · {dayData.tag}</div>
+            <p style={{ fontSize:`${baseSize + 1}px`,lineHeight:1.75,fontFamily:font,fontStyle:"italic",opacity:.85 }}>{lesson.welcome}</p>
+          </div>
+
+          {/* Objectives */}
+          <div style={{ marginBottom:"24px" }}>
+            <div style={{ fontSize:`${baseSize - 4}px`,letterSpacing:"2px",color:T.muted,marginBottom:"10px" }}>WHAT YOU WILL LEARN TODAY</div>
+            {lesson.objectives.map((o,i) => (
+              <div key={i} style={{ display:"flex",gap:"10px",marginBottom:"8px",alignItems:"flex-start" }}>
+                <span style={{ color:color,flexShrink:0,marginTop:"2px",fontSize:`${baseSize}px` }}>{i+1}.</span>
+                <span style={{ fontSize:`${baseSize}px`,lineHeight:1.7,fontFamily:font,opacity:.85 }}>{o}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Explanation */}
+          <div style={{ marginBottom:"28px" }}>
+            <div style={{ fontSize:`${baseSize - 4}px`,letterSpacing:"2px",color:T.muted,marginBottom:"14px" }}>THE CONCEPT EXPLAINED</div>
+            {lesson.explanation.map((para, i) => (
+              <p key={i} style={{ fontSize:`${baseSize}px`,lineHeight:1.9,marginBottom:"16px",fontFamily:font,opacity:.88 }}>{para}</p>
+            ))}
+          </div>
+
+          {/* Code Examples */}
+          <div style={{ marginBottom:"28px" }}>
+            <div style={{ fontSize:`${baseSize - 4}px`,letterSpacing:"2px",color:T.muted,marginBottom:"14px" }}>CODE EXAMPLES</div>
+            {lesson.examples.map((ex, i) => (
+              <div key={i} style={{ marginBottom:"20px" }}>
+                <div style={{ fontSize:`${baseSize - 1}px`,color:color,marginBottom:"8px",fontWeight:"600",fontFamily:font }}>Example {i+1}: {ex.title}</div>
+                <div style={{ background:dark?"#0d1117":"#1a2035",borderLeft:`3px solid ${color}`,padding:"16px",overflowX:"auto" }}>
+                  {"# Code example coming soon".split("\n").map((line,li) => (
+                    <div key={li} style={{ fontSize:`${baseSize - 1}px`,lineHeight:"1.8",color:dark?"#7dd3a8":"#5fba7d",fontFamily:"'IBM Plex Mono','Fira Code',monospace",minHeight:"21px" }}>
+                      {line || " "}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Rules */}
+          <div style={{ background:T.surface,border:`1px solid ${T.border}`,padding:"18px 20px",marginBottom:"24px" }}>
+            <div style={{ fontSize:`${baseSize - 4}px`,letterSpacing:"2px",color:T.muted,marginBottom:"12px" }}>KEY RULES TO REMEMBER</div>
+            {lesson.rules.map((r,i) => (
+              <div key={i} style={{ display:"flex",gap:"10px",marginBottom:"8px",alignItems:"flex-start" }}>
+                <span style={{ color:color,flexShrink:0,fontSize:`${baseSize - 1}px`,marginTop:"3px" }}>▸</span>
+                <span style={{ fontSize:`${baseSize - 1}px`,lineHeight:1.7,fontFamily:font,opacity:.8 }}>{r}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Daily plan */}
+          <div style={{ background:T.surface,border:`1px solid ${T.border}`,padding:"18px 20px",marginBottom:"20px" }}>
+            <div style={{ fontSize:`${baseSize - 4}px`,letterSpacing:"2px",color:T.muted,marginBottom:"12px" }}>TODAY'S BOOTCAMP PLAN</div>
+            {[["📖 Lesson","Read, understand, and take notes on everything above","~25 min"],["💻 Exercises","3 progressive coding challenges — do them in your editor","~45 min"],["❓ Quiz","5 questions — close your notes and test yourself","~10 min"],["🔨 Project","Build the mini project end-to-end","~60 min"],["📩 Notes","Paste your code and write self-reflection notes","~10 min"]].map(([l,d,t],i) => (
+              <div key={i} style={{ display:"flex",gap:"12px",alignItems:"flex-start",padding:"7px 0",borderBottom:i<4?`1px solid ${T.border}`:"none" }}>
+                <span style={{ color:color,fontWeight:"600",fontSize:`${baseSize - 1}px`,flexShrink:0,width:"95px",fontFamily:font }}>{l}</span>
+                <span style={{ fontSize:`${baseSize - 2}px`,flex:1,opacity:.5,fontFamily:font }}>{d}</span>
+                <span style={{ fontSize:`${baseSize - 4}px`,opacity:.25,flexShrink:0 }}>{t}</span>
+              </div>
+            ))}
+          </div>
+
+          <button onClick={() => setTab("exercises")}
+            style={{ background:color,color:"#fff",border:"none",padding:"13px",fontSize:`${baseSize}px`,letterSpacing:"2px",fontWeight:"700",width:"100%",fontFamily:font }}
+            onMouseEnter={e => e.currentTarget.style.opacity=".85"}
+            onMouseLeave={e => e.currentTarget.style.opacity="1"}>
+            I'VE READ THE LESSON — START EXERCISES →
+          </button>
+        </div>
+      )}
+
+      {/* ── EXERCISES ── */}
+      {tab === "exercises" && (
+        <div className="fade">
+          <div style={{ display:"flex",gap:"6px",marginBottom:"20px" }}>
+            {lesson.exercises.map((ex,i) => (
+              <button key={i} onClick={() => setExIdx(i)}
+                style={{ background:exIdx===i?`${color}20`:"transparent",border:`1px solid ${exIdx===i?color:T.border}`,color:exIdx===i?color:T.muted,padding:"6px 14px",fontSize:`${baseSize - 3}px`,letterSpacing:"1px",transition:"all .15s",fontFamily:font }}>
+                {ex.level}
+              </button>
+            ))}
+          </div>
+          {(() => {
+            const ex = lesson.exercises[exIdx];
+            return (
+              <div>
+                <div style={{ background:T.surface,border:`1px solid ${T.border}`,borderLeft:`3px solid ${color}`,padding:"16px 20px",marginBottom:"16px" }}>
+                  <div style={{ fontSize:`${baseSize - 4}px`,letterSpacing:"2px",color:color,marginBottom:"6px" }}>EXERCISE {exIdx+1} — {ex.level.toUpperCase()}</div>
+                  <div style={{ fontSize:`${baseSize + 2}px`,fontWeight:"700",marginBottom:"8px",fontFamily:font }}>{ex.title}</div>
+                  <p style={{ fontSize:`${baseSize}px`,lineHeight:1.7,opacity:.75,fontFamily:font }}>{ex.instructions}</p>
+                </div>
+                <div style={{ fontSize:`${baseSize - 4}px`,letterSpacing:"2px",color:T.muted,marginBottom:"8px" }}>STARTER CODE</div>
+                <div style={{ background:dark?"#0d1117":"#1a2035",borderLeft:`3px solid ${color}`,padding:"16px",marginBottom:"16px",overflowX:"auto" }}>
+                  {(ex.starter||"# Starter code coming soon").split("\n").map((line,li) => (
+                    <div key={li} style={{ fontSize:`${baseSize - 1}px`,lineHeight:"1.8",color:dark?"#7dd3a8":"#5fba7d",fontFamily:"'IBM Plex Mono','Fira Code',monospace",minHeight:"21px" }}>
+                      {line || " "}
+                    </div>
+                  ))}
+                </div>
+                <div style={{ background:T.surface,border:`1px solid ${T.border}`,padding:"12px 16px" }}>
+                  <span style={{ fontSize:`${baseSize - 4}px`,letterSpacing:"2px",color:T.muted }}>EXPECTED: </span>
+                  <span style={{ fontSize:`${baseSize - 2}px`,opacity:.6,fontFamily:font }}>{ex.expected}</span>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* ── QUIZ ── */}
+      {tab === "quiz" && (
+        <div className="fade">
+          <div style={{ fontSize:`${baseSize - 4}px`,letterSpacing:"3px",color:T.muted,marginBottom:"18px" }}>KNOWLEDGE CHECK · 5 QUESTIONS · {dayData.topic.toUpperCase()}</div>
+          {lesson.quiz.map((q, qi) => {
+            const selected = quizAnswers[qi];
+            const isRight = quizDone && selected?.startsWith(q.correct);
+            const isWrong = quizDone && selected && !selected.startsWith(q.correct);
+            return (
+              <div key={qi} style={{ background:T.surface,border:`1px solid ${quizDone?(isRight?color+"55":"#ef444455"):T.border}`,padding:"18px",marginBottom:"12px",transition:"border-color .3s" }}>
+                <div style={{ fontSize:`${baseSize}px`,fontWeight:"600",marginBottom:"12px",fontFamily:font }}>
+                  <span style={{ color:color,marginRight:"8px" }}>Q{qi+1}.</span>{q.q}
+                </div>
+                {q.options.map((opt, oi) => {
+                  const isCorrectOpt = quizDone && opt.startsWith(q.correct);
+                  const isSelectedOpt = selected === opt;
+                  const isBad = quizDone && isSelectedOpt && !opt.startsWith(q.correct);
+                  return (
+                    <button key={oi} onClick={() => !quizDone && setQuizAnswers(p => ({...p,[qi]:opt}))}
+                      disabled={quizDone}
+                      style={{ display:"block",width:"100%",textAlign:"left",background:isCorrectOpt?`${color}18`:isBad?"#ef444418":isSelectedOpt?`${color}0d`:T.card,border:`1px solid ${isCorrectOpt?color+"66":isBad?"#ef444466":isSelectedOpt?color+"44":T.border}`,color:isCorrectOpt?color:isBad?"#ef4444":T.text,padding:"10px 13px",marginBottom:"5px",fontSize:`${baseSize}px`,transition:"all .15s",fontFamily:font }}>
+                      {opt} {isCorrectOpt&&"✓"}{isBad&&"✗"}
+                    </button>
+                  );
+                })}
+                {quizDone && (
+                  <div style={{ marginTop:"10px",fontSize:`${baseSize - 1}px`,color:T.sub,background:T.card,padding:"10px 12px",borderLeft:`3px solid ${color}`,fontFamily:font,lineHeight:1.6 }}>
+                    💡 {q.explain}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {!quizDone ? (
+            <button onClick={() => setQuizDone(true)} disabled={Object.keys(quizAnswers).length < lesson.quiz.length}
+              style={{ background:Object.keys(quizAnswers).length>=lesson.quiz.length?color:T.border,color:Object.keys(quizAnswers).length>=lesson.quiz.length?"#fff":T.muted,border:"none",padding:"13px",fontSize:`${baseSize}px`,letterSpacing:"2px",fontWeight:"700",width:"100%",fontFamily:font }}>
+              {Object.keys(quizAnswers).length < lesson.quiz.length ? `ANSWER ALL QUESTIONS (${Object.keys(quizAnswers).length}/${lesson.quiz.length})` : "▸ SUBMIT QUIZ"}
+            </button>
+          ) : (
+            <div style={{ background:T.surface,border:`1px solid ${color}44`,padding:"24px",textAlign:"center",marginTop:"8px" }}>
+              <div style={{ fontSize:"32px",marginBottom:"8px" }}>{quizScore===5?"🎉":quizScore>=3?"👍":"📚"}</div>
+              <div style={{ fontSize:`${baseSize + 14}px`,fontWeight:"700",color,marginBottom:"4px" }}>{quizScore}/5</div>
+              <div style={{ fontSize:`${baseSize}px`,opacity:.5,fontFamily:font }}>
+                {quizScore===5?"Perfect! You really know this topic.":quizScore>=3?"Good work — review the ones you missed.":"Re-read the lesson then try again."}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── PROJECT ── */}
+      {tab === "project" && (
+        <div className="fade">
+          {(() => {
+            const p = lesson.project;
+            return (
+              <div>
+                <div style={{ background:T.surface,border:`1px solid ${color}33`,borderLeft:`4px solid ${color}`,padding:"18px 20px",marginBottom:"20px" }}>
+                  <div style={{ fontSize:`${baseSize - 4}px`,letterSpacing:"2px",color:color,marginBottom:"6px" }}>END-OF-DAY MINI PROJECT · {p.time}</div>
+                  <div style={{ fontSize:`${baseSize + 3}px`,fontWeight:"700",marginBottom:"8px",fontFamily:font }}>{p.title}</div>
+                  <p style={{ fontSize:`${baseSize}px`,lineHeight:1.7,opacity:.7,fontFamily:font }}>{p.mission}</p>
+                </div>
+
+                <div style={{ fontSize:`${baseSize - 4}px`,letterSpacing:"2px",color:T.muted,marginBottom:"10px" }}>STEP-BY-STEP GUIDE</div>
+                {p.steps.map((s,i) => (
+                  <div key={i} style={{ display:"flex",gap:"14px",marginBottom:"14px",alignItems:"flex-start" }}>
+                    <div style={{ width:"28px",height:"28px",background:color,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:`${baseSize - 1}px`,fontWeight:"700",flexShrink:0,borderRadius:"2px" }}>{i+1}</div>
+                    <div>
+                      <div style={{ fontSize:`${baseSize}px`,fontWeight:"600",marginBottom:"3px",fontFamily:font }}>{s.title}</div>
+                      <div style={{ fontSize:`${baseSize - 1}px`,opacity:.6,lineHeight:1.6,fontFamily:font }}>{s.desc}</div>
+                    </div>
+                  </div>
+                ))}
+
+                <div style={{ fontSize:`${baseSize - 4}px`,letterSpacing:"2px",color:T.muted,marginBottom:"8px",marginTop:"20px" }}>STARTER CODE</div>
+                <div style={{ background:dark?"#0d1117":"#1a2035",borderLeft:`3px solid ${color}`,padding:"16px",marginBottom:"16px",overflowX:"auto" }}>
+                  {(p.starter||"# Project starter coming soon").split("\n").map((line,li) => (
+                    <div key={li} style={{ fontSize:`${baseSize - 1}px`,lineHeight:"1.8",color:dark?"#7dd3a8":"#5fba7d",fontFamily:"'IBM Plex Mono','Fira Code',monospace",minHeight:"21px" }}>
+                      {line || " "}
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ background:T.surface,border:`1px solid ${T.border}`,padding:"14px 18px" }}>
+                  <div style={{ fontSize:`${baseSize - 4}px`,letterSpacing:"2px",color:T.muted,marginBottom:"8px" }}>DONE WHEN</div>
+                  {p.success.map((s,i) => (
+                    <div key={i} style={{ display:"flex",gap:"8px",marginBottom:"6px",fontSize:`${baseSize - 1}px`,fontFamily:font,opacity:.75 }}>
+                      <span style={{ color:color }}>✓</span>{s}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* ── NOTES / SUBMIT ── */}
+      {/* ── LAB ── */}
+      {tab === "lab" && (() => {
+        const lab = LAB_SETUP[activeMonth];
+        if (!lab) return (
+          <div className="fade" style={{ textAlign:"center",padding:"60px 20px",opacity:.4 }}>
+            <div style={{ fontSize:"40px",marginBottom:"16px" }}>🧪</div>
+            <div style={{ fontSize:`${baseSize}px` }}>Lab content coming soon for this month.</div>
+          </div>
+        );
+        return (
+          <div className="fade">
+            {/* Header */}
+            <div style={{ background:T.surface,border:`1px solid ${T.border}`,padding:"24px",marginBottom:"16px" }}>
+              <div style={{ fontSize:`${baseSize-4}px`,letterSpacing:"2px",color:color,marginBottom:"6px" }}>🧪 LAB ENVIRONMENT</div>
+              <div style={{ fontSize:`${baseSize+4}px`,fontWeight:"700",fontFamily:font,marginBottom:"4px" }}>{lab.title}</div>
+              <div style={{ fontSize:`${baseSize-1}px`,opacity:.5,fontFamily:font }}>{lab.environment}</div>
+            </div>
+
+            {/* Setup Steps */}
+            <div style={{ background:T.surface,border:`1px solid ${T.border}`,padding:"24px",marginBottom:"16px" }}>
+              <div style={{ fontSize:`${baseSize-4}px`,letterSpacing:"2px",color:color,marginBottom:"14px" }}>⚙️ SETUP INSTRUCTIONS</div>
+              {lab.setup.map((step,i) => (
+                <div key={i} style={{ display:"flex",gap:"12px",alignItems:"flex-start",padding:"8px 0",borderBottom:i<lab.setup.length-1?`1px solid ${T.border}`:"none" }}>
+                  <span style={{ color:color,fontWeight:"700",fontSize:`${baseSize-3}px`,flexShrink:0,marginTop:"2px" }}>{String(i+1).padStart(2,"0")}</span>
+                  <code style={{ fontSize:`${baseSize-3}px`,fontFamily:"monospace",opacity:.8,lineHeight:1.6 }}>{step}</code>
+                </div>
+              ))}
+            </div>
+
+            {/* Tools */}
+            <div style={{ background:T.surface,border:`1px solid ${T.border}`,padding:"24px",marginBottom:"16px" }}>
+              <div style={{ fontSize:`${baseSize-4}px`,letterSpacing:"2px",color:color,marginBottom:"14px" }}>🛠️ TOOLS THIS MONTH</div>
+              <div style={{ display:"grid",gridTemplateColumns:isDesktop?"1fr 1fr":"1fr",gap:"10px" }}>
+                {lab.tools.map((tool,i) => (
+                  <div key={i} style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px",background:T.bg,border:`1px solid ${T.border}` }}>
+                    <div>
+                      <div style={{ fontSize:`${baseSize-1}px`,fontWeight:"700",fontFamily:font }}>{tool.name}</div>
+                      <div style={{ fontSize:`${baseSize-3}px`,opacity:.45,fontFamily:font }}>{tool.purpose}</div>
+                    </div>
+                    <span style={{ fontSize:`${baseSize-4}px`,padding:"3px 8px",border:`1px solid ${tool.free===true?"#22c55e":tool.free==="free tier"?"#f59e0b":"#6366f1"}`,color:tool.free===true?"#22c55e":tool.free==="free tier"?"#f59e0b":"#6366f1",flexShrink:0,marginLeft:"8px" }}>
+                      {tool.free===true?"FREE":tool.free==="free tier"?"FREE TIER":tool.free}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Weekly Labs */}
+            <div style={{ background:T.surface,border:`1px solid ${T.border}`,padding:"24px",marginBottom:"16px" }}>
+              <div style={{ fontSize:`${baseSize-4}px`,letterSpacing:"2px",color:color,marginBottom:"14px" }}>📅 WEEKLY LAB SCHEDULE</div>
+              {lab.weeklyLabs.map((wk,i) => (
+                <div key={i} style={{ marginBottom:"18px",paddingBottom:"18px",borderBottom:i<lab.weeklyLabs.length-1?`1px solid ${T.border}`:"none" }}>
+                  <div style={{ display:"flex",alignItems:"center",gap:"10px",marginBottom:"10px" }}>
+                    <span style={{ background:color,color:"#fff",fontSize:`${baseSize-4}px`,padding:"3px 10px",letterSpacing:"1px",fontWeight:"700" }}>WEEK {wk.week}</span>
+                    <span style={{ fontSize:`${baseSize-1}px`,fontWeight:"700",fontFamily:font }}>{wk.title}</span>
+                  </div>
+                  {wk.tasks.map((task,j) => (
+                    <div key={j} style={{ display:"flex",gap:"10px",alignItems:"flex-start",padding:"6px 0" }}>
+                      <span style={{ color:color,fontSize:`${baseSize-2}px`,flexShrink:0,marginTop:"1px" }}>▸</span>
+                      <span style={{ fontSize:`${baseSize-2}px`,opacity:.7,fontFamily:font,lineHeight:1.6 }}>{task}</span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+
+            {/* Daily Habit */}
+            <div style={{ background:`${color}15`,border:`1px solid ${color}40`,padding:"20px 24px",marginBottom:"16px" }}>
+              <div style={{ fontSize:`${baseSize-4}px`,letterSpacing:"2px",color:color,marginBottom:"8px" }}>⚡ DAILY LAB HABIT</div>
+              <div style={{ fontSize:`${baseSize}px`,fontFamily:font,lineHeight:1.7,fontStyle:"italic",opacity:.8 }}>{lab.dailyHabit}</div>
+            </div>
+
+            {/* Resources */}
+            <div style={{ background:T.surface,border:`1px solid ${T.border}`,padding:"24px" }}>
+              <div style={{ fontSize:`${baseSize-4}px`,letterSpacing:"2px",color:color,marginBottom:"14px" }}>🔗 KEY RESOURCES</div>
+              {lab.resources.map((url,i) => (
+                <div key={i} style={{ padding:"8px 0",borderBottom:i<lab.resources.length-1?`1px solid ${T.border}`:"none" }}>
+                  <a href={url} target="_blank" rel="noreferrer"
+                    style={{ color:color,fontSize:`${baseSize-1}px`,fontFamily:"monospace",textDecoration:"none",opacity:.8 }}>
+                    {url}
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── NOTES ── */}
+      {tab === "notes" && <div className="fade">
+          <div style={{ background:T.surface,border:`1px solid ${color}33`,borderLeft:`4px solid ${color}`,padding:"16px 20px",marginBottom:"20px" }}>
+            <div style={{ fontSize:`${baseSize - 4}px`,letterSpacing:"2px",color:color,marginBottom:"6px" }}>📩 MY NOTES & CODE</div>
+            <p style={{ fontSize:`${baseSize}px`,opacity:.6,fontFamily:font,lineHeight:1.6 }}>
+              Paste your code here and write a self-review. What did you learn? What was hard? What would you do differently?
+            </p>
+          </div>
+          <div style={{ marginBottom:"14px" }}>
+            <label style={{ fontSize:`${baseSize - 4}px`,letterSpacing:"2px",color:T.muted,display:"block",marginBottom:"7px" }}>PASTE YOUR CODE</label>
+            <textarea value={code} onChange={e => setCode(e.target.value)} rows={12} placeholder="# Paste your solution code here..."
+              style={{ width:"100%",background:dark?"#0d1117":"#1a2035",border:`1px solid ${code?color+"55":T.border}`,color:dark?"#7dd3a8":"#5fba7d",padding:"14px",fontSize:`${baseSize - 1}px`,fontFamily:"'IBM Plex Mono','Fira Code',monospace",lineHeight:"1.75",resize:"vertical",outline:"none",transition:"border .2s" }} />
+          </div>
+          <div style={{ marginBottom:"16px" }}>
+            <label style={{ fontSize:`${baseSize - 4}px`,letterSpacing:"2px",color:T.muted,display:"block",marginBottom:"7px" }}>SELF-REVIEW (what did you learn? what was hard?)</label>
+            <textarea value={selfReview} onChange={e => setSelfReview(e.target.value)} rows={5} placeholder="Write your own reflection here..."
+              style={{ width:"100%",background:T.card,border:`1px solid ${T.border}`,color:T.text,padding:"14px",fontSize:`${baseSize}px`,lineHeight:"1.75",resize:"vertical",outline:"none",fontFamily:font }} />
+          </div>
+          {!isDone && (
+            <button onClick={onComplete}
+              style={{ background:"transparent",color,border:`1px solid ${color}`,padding:"13px",fontSize:`${baseSize}px`,letterSpacing:"2px",fontWeight:"700",width:"100%",transition:"all .2s",fontFamily:font }}
+              onMouseEnter={e => { e.currentTarget.style.background=color; e.currentTarget.style.color="#fff"; }}
+              onMouseLeave={e => { e.currentTarget.style.background="transparent"; e.currentTarget.style.color=color; }}>
+              ✓ MARK DAY {dayData.day} COMPLETE
+            </button>
+          )}
+          {isDone && <div style={{ textAlign:"center",padding:"16px",fontSize:`${baseSize}px`,color,opacity:.7,fontFamily:font }}>✓ Day {dayData.day} completed!</div>}
+        </div>
+      )}
+
+      {/* ── FLOATING PROGRESS & MARK COMPLETE BAR (visible on all tabs) ── */}
+      <div style={{ position:"fixed",bottom:0,left:0,right:0,zIndex:200,background:T.surface,borderTop:`1px solid ${T.border}`,padding:"12px 20px",display:"flex",alignItems:"center",gap:"12px" }}>
+        {/* Day progress within month */}
+        <div style={{ flex:1,minWidth:0 }}>
+          <div style={{ fontSize:`${baseSize-4}px`,opacity:.4,marginBottom:"4px",letterSpacing:"1px" }}>
+            M{month.id} · DAY {dayData.day}/{month.days.length}
+          </div>
+          <div style={{ height:"4px",background:T.border,borderRadius:"2px" }}>
+            <div style={{ height:"100%",borderRadius:"2px",background:color,
+              width:`${Math.round(dayData.day/month.days.length*100)}%` }} />
+          </div>
+        </div>
+
+        {/* Mark complete / completed */}
+        {!isDone ? (
+          <button onClick={onComplete}
+            style={{ background:color,color:"#fff",border:"none",padding:"10px 20px",fontSize:`${baseSize-1}px`,fontWeight:"700",letterSpacing:"1px",cursor:"pointer",flexShrink:0,transition:"opacity .2s" }}
+            onMouseEnter={e=>e.currentTarget.style.opacity=".85"}
+            onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
+            ✓ Mark Complete
+          </button>
+        ) : (
+          <div style={{ display:"flex",alignItems:"center",gap:"8px",flexShrink:0 }}>
+            <span style={{ fontSize:`${baseSize-2}px`,color,fontWeight:"700" }}>✓ Done</span>
+            <button onClick={onUnmark}
+              style={{ background:"none",border:`1px solid ${T.border}`,color:T.muted,padding:"6px 10px",fontSize:`${baseSize-4}px`,cursor:"pointer" }}
+              onMouseEnter={e=>e.currentTarget.style.color="#ef4444"}
+              onMouseLeave={e=>e.currentTarget.style.color=T.muted}>
+              Unmark
+            </button>
+          </div>
+        )}
+
+        {/* Back to month */}
+        <button onClick={onBack}
+          style={{ background:"none",border:`1px solid ${T.border}`,color:T.muted,padding:"10px 14px",fontSize:`${baseSize-2}px`,cursor:"pointer",flexShrink:0,transition:"all .2s" }}
+          onMouseEnter={e=>{e.currentTarget.style.borderColor=color;e.currentTarget.style.color=color;}}
+          onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}>
+          ← Back
+        </button>
+      </div>
+    </div>
+  );
+}
+
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(React.createElement(App));
+  </script>
+</body>
+</html>

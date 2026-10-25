@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Bootcamp Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* ── Design tokens ─────────────────────────────────────────────────────── */
+    :root {
+      --bg:       #07090f;
+      --surface:  #0e1420;
+      --border:   #1a2235;
+      --text:     #e2e8f0;
+      --muted:    #4a5568;
+      --cyber:    #f87171;
+      --cyber-glow: rgba(248,113,113,0.15);
+      --ibm:      #f97316;
+      --ibm-glow: rgba(249,115,22,0.15);
+      --ai:       #a78bfa;
+      --ai-glow:  rgba(167,139,250,0.15);
+      --nav-h:    56px;
+      color-scheme: dark;
+    }
+
+    /* ── Reset ─────────────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Layout ─────────────────────────────────────────────────────────────── */
+    .shell {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      height: 100dvh;
+    }
+
+    /* ── Top navigation ─────────────────────────────────────────────────────── */
+    nav {
+      flex-shrink: 0;
+      height: var(--nav-h);
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 max(16px, env(safe-area-inset-left, 0px)) 0 max(16px, env(safe-area-inset-left, 0px));
+      gap: 0;
+      position: relative;
+      z-index: 10;
+    }
+
+    .nav-brand {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-right: 24px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 2px;
+      height: 100%;
+      flex: 1;
+    }
+
+    .nav-tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 18px;
+      height: 100%;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+      white-space: nowrap;
+      position: relative;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .nav-tab:hover {
+      color: var(--text);
+      background: rgba(255,255,255,0.03);
+    }
+    .nav-tab.active {
+      color: var(--text);
+    }
+    .nav-tab[data-camp="cyber"].active  { border-bottom-color: var(--cyber); color: var(--cyber); }
+    .nav-tab[data-camp="ibm"].active   { border-bottom-color: var(--ibm);  color: var(--ibm);  }
+    .nav-tab[data-camp="ai"].active    { border-bottom-color: var(--ai);   color: var(--ai);   }
+
+    .tab-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .nav-tab[data-camp="cyber"] .tab-dot { background: var(--cyber); }
+    .nav-tab[data-camp="ibm"]  .tab-dot { background: var(--ibm); }
+    .nav-tab[data-camp="ai"]   .tab-dot { background: var(--ai); }
+
+    .tab-label { flex: 1; }
+    .tab-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 500;
+      padding: 1px 6px;
+      border-radius: 3px;
+      letter-spacing: 0.04em;
+      opacity: 0.7;
+    }
+    .nav-tab[data-camp="cyber"] .tab-badge { background: var(--cyber-glow); color: var(--cyber); }
+    .nav-tab[data-camp="ibm"]  .tab-badge { background: var(--ibm-glow);  color: var(--ibm); }
+    .nav-tab[data-camp="ai"]   .tab-badge { background: var(--ai-glow);   color: var(--ai); }
+
+    /* ── Iframe panes ────────────────────────────────────────────────────────── */
+    .panes {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .pane {
+      position: absolute;
+      inset: 0;
+      border: none;
+      display: none;
+      background: var(--bg);
+    }
+    .pane.active { display: block; }
+
+    /* ── Loading overlay shown until iframe fires load ───────────────────────── */
+    .loading-overlay {
+      position: absolute;
+      inset: 0;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      z-index: 5;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .loading-overlay.hidden { opacity: 0; }
+    .loading-ring {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent-color, var(--cyber));
+      animation: spin 0.8s linear infinite;
+    }
+    .loading-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Welcome splash (before first tab click) ─────────────────────────────── */
+    .splash {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 40px;
+      padding: 40px max(24px, env(safe-area-inset-left, 0px));
+      background: var(--bg);
+    }
+    .splash-header {
+      text-align: center;
+    }
+    .splash-eyebrow {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .splash-title {
+      font-size: clamp(1.8rem, 5vw, 3rem);
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      text-wrap: balance;
+    }
+    .splash-title span {
+      background: linear-gradient(135deg, var(--cyber) 0%, var(--ibm) 50%, var(--ai) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .splash-sub {
+      margin-top: 12px;
+      font-size: 14px;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .splash-cards {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 720px;
+      width: 100%;
+    }
+    .splash-card {
+      flex: 1;
+      min-width: 180px;
+      max-width: 220px;
+      padding: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      cursor: pointer;
+      text-align: left;
+      font-family: inherit;
+      color: var(--text);
+      transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .splash-card:hover {
+      transform: translateY(-2px);
+    }
+    .splash-card[data-camp="cyber"]:hover { border-color: var(--cyber); box-shadow: 0 8px 32px var(--cyber-glow); }
+    .splash-card[data-camp="ibm"]:hover  { border-color: var(--ibm);  box-shadow: 0 8px 32px var(--ibm-glow); }
+    .splash-card[data-camp="ai"]:hover   { border-color: var(--ai);   box-shadow: 0 8px 32px var(--ai-glow); }
+    .card-icon {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+    .card-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .card-meta {
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .card-tag {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 2px 8px;
+      border-radius: 3px;
+      letter-spacing: 0.06em;
+      font-weight: 600;
+    }
+    .splash-card[data-camp="cyber"] .card-tag { background: var(--cyber-glow); color: var(--cyber); }
+    .splash-card[data-camp="ibm"]  .card-tag { background: var(--ibm-glow);  color: var(--ibm); }
+    .splash-card[data-camp="ai"]   .card-tag { background: var(--ai-glow);   color: var(--ai); }
+
+    /* ── Mobile: collapse tab labels ────────────────────────────────────────── */
+    @media (max-width: 480px) {
+      .nav-brand { display: none; }
+      .tab-label { display: none; }
+      .nav-tab { padding: 0 14px; gap: 0; }
+      .tab-badge { display: none; }
+      .tab-dot { width: 10px; height: 10px; }
+      .nav-tab.active .tab-dot { width: 10px; height: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <!-- Top navigation -->
+    <nav>
+      <div class="nav-brand">// Hub</div>
+      <div class="nav-tabs">
+        <button class="nav-tab" data-camp="cyber" onclick="switchTab('cyber')">
+          <span class="tab-dot"></span>
+          <span class="tab-label">Cybersecurity</span>
+          <span class="tab-badge">98d</span>
+        </button>
+        <button class="nav-tab" data-camp="ibm" onclick="switchTab('ibm')">
+          <span class="tab-dot"></span>
+          <span class="tab-label">IBM Python + ML</span>
+          <span class="tab-badge">55d</span>
+        </button>
+        <button class="nav-tab" data-camp="ai" onclick="switchTab('ai')">
+          <span class="tab-dot"></span>
+          <span class="tab-label">AI Engineering</span>
+          <span class="tab-badge">13mo</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Content area -->
+    <div class="panes" id="panes">
+      <!-- Welcome splash -->
+      <div class="splash" id="splash">
+        <div class="splash-header">
+          <div class="splash-eyebrow">BsoftMaewada</div>
+          <h1 class="splash-title">Bootcamp <span>Hub</span></h1>
+          <p class="splash-sub">Three paths. One destination.</p>
+        </div>
+        <div class="splash-cards">
+          <button class="splash-card" data-camp="cyber" onclick="switchTab('cyber')">
+            <div class="card-icon">🛡️</div>
+            <div class="card-title">Cybersecurity</div>
+            <div class="card-meta">98 days<br>Network+ → Security+<br>Linux+ → DevSecOps</div>
+            <div class="card-tag">ENTER</div>
+          </button>
+          <button class="splash-card" data-camp="ibm" onclick="switchTab('ibm')">
+            <div class="card-icon">🐍</div>
+            <div class="card-title">IBM Python + ML</div>
+            <div class="card-meta">55 days<br>IBM Coursera<br>Python · ML with Python</div>
+            <div class="card-tag">ENTER</div>
+          </button>
+          <button class="splash-card" data-camp="ai" onclick="switchTab('ai')">
+            <div class="card-icon">🤖</div>
+            <div class="card-title">AI Engineering</div>
+            <div class="card-meta">13 months<br>390 days<br>Full ML/AI Engineer path</div>
+            <div class="card-tag">ENTER</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Bootcamp iframes (lazy-loaded on first click) -->
+      <div class="pane" id="pane-cyber" style="display:none">
+        <div class="loading-overlay" id="load-cyber" style="--accent-color: #f87171">
+          <div class="loading-ring"></div>
+          <div class="loading-label">Loading Cybersecurity...</div>
+        </div>
+        <!-- iframe injected by JS -->
+      </div>
+      <div class="pane" id="pane-ibm" style="display:none">
+        <div class="loading-overlay" id="load-ibm" style="--accent-color: #f97316">
+          <div class="loading-ring"></div>
+          <div class="loading-label">Loading IBM Python + ML...</div>
+        </div>
+      </div>
+      <div class="pane" id="pane-ai" style="display:none">
+        <div class="loading-overlay" id="load-ai" style="--accent-color: #a78bfa">
+          <div class="loading-ring"></div>
+          <div class="loading-label">Loading AI Engineering...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const TABS = {
+      cyber: { src: 'cyber.html', color: '#f87171' },
+      ibm:   { src: 'ibm.html',   color: '#f97316' },
+      ai:    { src: 'ai.html',    color: '#a78bfa' },
+    };
+
+    let active = null;
+    const loaded = {};
+
+    function switchTab(camp) {
+      // Deactivate all tabs and panes
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.pane').forEach(p => { p.style.display = 'none'; p.classList.remove('active'); });
+      document.getElementById('splash').style.display = 'none';
+
+      // Activate selected
+      document.querySelector(`.nav-tab[data-camp="${camp}"]`).classList.add('active');
+      const pane = document.getElementById(`pane-${camp}`);
+      pane.style.display = 'block';
+      pane.classList.add('active');
+      active = camp;
+
+      // Inject iframe on first visit (lazy loading)
+      if (!loaded[camp]) {
+        loaded[camp] = true;
+        const iframe = document.createElement('iframe');
+        iframe.src = TABS[camp].src;
+        iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none;background:transparent;';
+        iframe.setAttribute('title', camp + ' bootcamp');
+        iframe.onload = () => {
+          const overlay = document.getElementById(`load-${camp}`);
+          if (overlay) overlay.classList.add('hidden');
+          setTimeout(() => { if (overlay) overlay.style.display = 'none'; }, 300);
+        };
+        pane.appendChild(iframe);
+      }
+
+      // Persist last-visited tab
+      try { localStorage.setItem('hub_tab', camp); } catch {}
+    }
+
+    // Restore last visited tab on load
+    window.addEventListener('DOMContentLoaded', () => {
+      try {
+        const saved = localStorage.getItem('hub_tab');
+        if (saved && TABS[saved]) {
+          switchTab(saved);
+          return;
+        }
+      } catch {}
+      // Show splash by default
+      document.getElementById('splash').style.display = 'flex';
+    });
+  </script>
+</body>
+</html>
