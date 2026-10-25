@@ -4146,6 +4146,12 @@ function App() {
               <div style={{ padding:"14px 18px", fontFamily:"var(--mono)", fontSize:"0.8125rem", color:"#7dd3fc", lineHeight:2.1 }}>{d.cheatsheet}</div>
             </div>
 
+            {/* Daily Lab */}
+            {(() => {
+              const _labKey = dayKey(d);
+              return <DailyLab labKey={_labKey} labData={IBM_LABS[_labKey]} color={color} dark={true} baseSize={fontSize || 14} />;
+            })()}
+
             {/* Prev / Next */}
             <div style={{ display:"flex", gap:10 }}>
               {prevD ? (
@@ -4193,6 +4199,124 @@ function App() {
   return null;
 }
 
+
+
+// ── IBM Bootcamp — per-day lab data ────────────────────────────────────────────
+// Key: dayKey(d) = `${d.courseShort}-w${d.week}-d${d.day}`
+const IBM_LABS = {
+  // Python Course — Week 1 (Python Basics)
+  "Python-w1-d1":{title:"Hello Polars",tool:"Polars",difficulty:1,objective:"Install and run Polars — the pandas replacement used in production Python data pipelines",steps:["pip install polars","import polars as pl","df = pl.DataFrame({'name':['Alice','Bob'],'score':[95,87]})","print(df)  # Polars shows column types in the header","# Key: Polars is lazy, typed, and uses parallel execution"]},
+  "Python-w1-d2":{title:"Polars vs pandas",tool:"Polars",difficulty:1,objective:"Learn Polars equivalents for the pandas operations covered in IBM Course videos",steps:["import polars as pl","# pandas: df[df['x']>5]  →  Polars: df.filter(pl.col('x') > 5)","# pandas: df.groupby()   →  Polars: df.group_by()","# pandas: df.apply(fn)   →  Polars: df.map_elements(fn)","df = pl.DataFrame({'x':[1,2,3,4,5],'y':['a','b','c','d','e']})","print(df.filter(pl.col('x') > 2))"]},
+  "Python-w1-d3":{title:"Polars String Ops",tool:"Polars",difficulty:1,objective:"Master the .str namespace — faster than pandas str methods, used in data wrangling pipelines",steps:["import polars as pl","s = pl.Series(['hello world','python rocks','ai engineering'])","print(s.str.to_uppercase())","print(s.str.split(' '))","print(s.str.starts_with('python'))","print(s.str.len_chars())"]},
+  "Python-w1-d4":{title:"Polars Numeric Ops",tool:"Polars",difficulty:1,objective:"Vectorized arithmetic — operates on entire columns in parallel, no Python loops needed",steps:["import polars as pl","df = pl.DataFrame({'price':[10.5,20.0,15.75],'qty':[3,1,4]})","result = df.with_columns([","  (pl.col('price') * pl.col('qty')).alias('total'),","  pl.col('price').round(1).alias('rounded')])","print(result)","print('Sum:', result['total'].sum())"]},
+  "Python-w1-d5":{title:"Input → Polars Pipeline",tool:"Polars",difficulty:2,objective:"Parse user input into a Polars DataFrame — the read→process→output pattern for ETL",steps:["import polars as pl","data = []","print('Enter name,score pairs. Blank to stop:')","while True:","  line = input()","  if not line: break","  n, s = line.split(',')","  data.append({'name': n.strip(), 'score': int(s)})","df = pl.DataFrame(data)","print(df.sort('score', descending=True))"]},
+
+  // Python Course — Week 2 (Data Structures)
+  "Python-w2-d1":{title:"Polars Filter & Logic",tool:"Polars",difficulty:2,objective:"Polars filter() compiles to optimised code — replaces boolean masking with readable syntax",steps:["import polars as pl","df = pl.DataFrame({'name':['Alice','Bob','Carol'],'score':[95,62,88],'dept':['Eng','HR','Eng']})","passing = df.filter(pl.col('score') >= 70)","# Multiple conditions: use & not 'and'","eng_pass = df.filter((pl.col('score') >= 70) & (pl.col('dept') == 'Eng'))","print(passing)","print(eng_pass)"]},
+  "Python-w2-d2":{title:"Polars GroupBy",tool:"Polars",difficulty:2,objective:"GroupBy aggregation — the core operation in every analytics and feature engineering pipeline",steps:["import polars as pl","df = pl.DataFrame({'dept':['Eng','Eng','HR','HR'],'salary':[90,95,60,65]})","agg = df.group_by('dept').agg([","  pl.col('salary').mean().alias('avg'),","  pl.col('salary').max().alias('max'),","  pl.col('salary').count().alias('n')])","print(agg.sort('avg', descending=True))"]},
+  "Python-w2-d3":{title:"Polars Join",tool:"Polars",difficulty:2,objective:"DataFrame joins in Polars — parallel execution, equivalent to SQL JOIN",steps:["import polars as pl","customers = pl.DataFrame({'id':[1,2,3],'name':['Alice','Bob','Carol']})","orders = pl.DataFrame({'id':[1,1,2,4],'amount':[50,75,100,200]})","inner = customers.join(orders, on='id', how='inner')","left  = customers.join(orders, on='id', how='left')","print('inner:', inner)","print('left:', left)"]},
+  "Python-w2-d4":{title:"Data Cleaning Pipeline",tool:"Polars",difficulty:2,objective:"Clean messy datasets: nulls, duplicates, type errors — the first step of every real project",steps:["import polars as pl","df = pl.DataFrame({'name':['Alice',None,'Alice','Bob'],'score':['95','bad','95','87']})","df_clean = (df.drop_nulls().unique()","  .with_columns(pl.col('score').cast(pl.Int64, strict=False)).drop_nulls())","print(df_clean)","print('Cleaned:', len(df_clean), 'of', len(df), 'rows')"]},
+  "Python-w2-d5":{title:"LazyFrame Pipeline",tool:"Polars",difficulty:3,objective:"LazyFrame = deferred execution — how Polars achieves 10x speedup over pandas at scale",steps:["import polars as pl","lazy = pl.LazyFrame({'a':range(1,6), 'b':range(10,60,10)})","result = (lazy","  .filter(pl.col('a') > 2)","  .with_columns((pl.col('a') * pl.col('b')).alias('product'))","  .sort('product')","  .collect()  # execute entire plan at once",")","print(result)"]},
+
+  // Python Course — Week 3 (Python Programming Fundamentals)
+  "Python-w3-d1":{title:"Pipeline Class",tool:"Polars+OOP",difficulty:3,objective:"Wrap a Polars pipeline in a class — how production ETL code is organised at scale",steps:["import polars as pl","class DataPipeline:","  def __init__(self, df): self.df = df","  def clean(self): self.df = self.df.drop_nulls(); return self","  def filter_dept(self, dept): self.df = self.df.filter(pl.col('dept')==dept); return self","  def aggregate(self): return self.df.group_by('dept').agg(pl.col('salary').mean())","df = pl.DataFrame({'dept':['Eng','Eng','HR'],'salary':[90,85,60],'notes':[None,'ok','ok']})","print(DataPipeline(df).clean().filter_dept('Eng').aggregate())"]},
+  "Python-w3-d2":{title:"Magic Methods",tool:"Python OOP",difficulty:3,objective:"Build a SmartDF class with Python magic methods — makes custom wrappers feel native",steps:["import polars as pl","class SmartDF:","  def __init__(self, df): self._df = df","  def __len__(self): return len(self._df)","  def __repr__(self): return f'SmartDF({len(self)} rows)\\n{self._df}'","  def __getitem__(self, col): return self._df[col]","  def __iter__(self): return iter(self._df.iter_rows(named=True))","sdf = SmartDF(pl.DataFrame({'x':[1,2,3],'y':[4,5,6]}))","print(len(sdf))","for row in sdf: print(row)"]},
+  "Python-w3-d3":{title:"Timing Decorator",tool:"Python Decorators",difficulty:3,objective:"Profile pipeline step timing with decorators — essential for production performance work",steps:["import polars as pl, time, functools","def timed(fn):","  @functools.wraps(fn)","  def wrapper(*a, **kw):","    t = time.perf_counter()","    result = fn(*a, **kw)","    print(f'{fn.__name__}: {(time.perf_counter()-t)*1000:.1f}ms')","    return result","  return wrapper","@timed","def transform(df): return df.with_columns((pl.col('a')*2).alias('b')).sort('b')","transform(pl.DataFrame({'a': list(range(10000))}))"]},
+  "Python-w3-d4":{title:"Parquet I/O",tool:"Polars",difficulty:3,objective:"Read and write Parquet — the production standard for ML datasets (5-10x smaller than CSV)",steps:["import polars as pl, pathlib","df = pl.DataFrame({'id':[1,2,3],'value':[10.5,20.0,15.3]})","df.write_csv('/tmp/data.csv')","df.write_parquet('/tmp/data.parquet')  # typed, compressed, columnar","parquet_df = pl.read_parquet('/tmp/data.parquet')","csv_size    = pathlib.Path('/tmp/data.csv').stat().st_size","pq_size     = pathlib.Path('/tmp/data.parquet').stat().st_size","print(f'CSV: {csv_size}b  Parquet: {pq_size}b  Ratio: {csv_size/pq_size:.1f}x')"]},
+  "Python-w3-d5":{title:"Polars + DuckDB SQL",tool:"Polars+DuckDB",difficulty:4,objective:"Query Polars DataFrames with SQL via DuckDB — used by data teams who prefer SQL syntax",steps:["pip install duckdb polars","import polars as pl, duckdb","df = pl.DataFrame({'name':['Alice','Bob','Carol'],'dept':['Eng','HR','Eng'],'salary':[90,60,85]})","result = duckdb.sql(\"SELECT dept, AVG(salary) avg FROM df GROUP BY dept ORDER BY avg DESC\").pl()","print(result)  # result is a Polars DataFrame"]},
+
+  // Python Course — Week 4 (Working with Data)
+  "Python-w4-d1":{title:"Type Annotations",tool:"Python typing",difficulty:3,objective:"Type-annotated Python functions — how Google, Meta, and Microsoft enforce code correctness",steps:["import polars as pl","from typing import Optional","def clean(df: pl.DataFrame, drop_nulls: bool = True) -> pl.DataFrame:","  result = df.unique()","  if drop_nulls: result = result.drop_nulls()","  return result","def agg(df: pl.DataFrame, col: str) -> pl.DataFrame:","  return df.group_by('dept').agg(pl.col(col).mean().alias('avg'))","df = pl.DataFrame({'dept':['Eng','Eng'],'score':[90,85]})","print(agg(clean(df), 'score'))"]},
+  "Python-w4-d2":{title:"pytest for Data Code",tool:"pytest",difficulty:4,objective:"Write pytest tests for pipeline functions — the standard in production ML codebases",steps:["# Save as test_clean.py","import polars as pl","def zscore(df, col):","  m = df[col].mean(); s = df[col].std()","  return df.with_columns(((pl.col(col)-m)/s).alias(col+'_z'))","def test_zscore_mean_zero():","  df = pl.DataFrame({'v':[1.0,2.0,3.0,4.0,5.0]})","  assert abs(zscore(df,'v')['v_z'].mean()) < 1e-10","def test_zscore_std_one():","  df = pl.DataFrame({'v':[1.0,2.0,3.0,4.0,5.0]})","  assert abs(zscore(df,'v')['v_z'].std() - 1.0) < 1e-10","# Run: pytest test_clean.py -v"]},
+
+  // Python Course — Week 5 (APIs and Data Collection)
+  "Python-w5-d1":{title:"FastAPI Endpoint",tool:"FastAPI",difficulty:3,objective:"Serve a Polars analysis as a REST API — the standard way to productionise Python code",steps:["pip install fastapi uvicorn","# Save as api.py — run: uvicorn api:app --reload","from fastapi import FastAPI","from pydantic import BaseModel","import polars as pl","app = FastAPI()","class ScoreReq(BaseModel): values: list[float]","@app.post('/stats')","async def stats(req: ScoreReq):","  s = pl.Series(req.values)","  return {'mean': s.mean(), 'std': s.std(), 'n': len(s)}","@app.get('/health')","async def health(): return {'status': 'ok'}"]},
+
+  // ML Course — Week 6 (Introduction to ML)
+  "ML-w6-d1":{title:"MLflow First Run",tool:"MLflow",difficulty:1,objective:"Log your first ML experiment — the single most important MLOps habit to build from day one",steps:["pip install mlflow scikit-learn","import mlflow, mlflow.sklearn","from sklearn.linear_model import LinearRegression","from sklearn.datasets import make_regression","X,y = make_regression(100,2,noise=10,random_state=42)","mlflow.set_experiment('ibm-ml-bootcamp')","with mlflow.start_run():","  m = LinearRegression().fit(X,y)","  mlflow.log_param('fit_intercept', True)","  mlflow.log_metric('r2', m.score(X,y))","print('View UI: mlflow ui')"]},
+  "ML-w6-d2":{title:"MLflow Autolog",tool:"MLflow",difficulty:1,objective:"One line captures every param, metric, and model artifact — the production default",steps:["import mlflow, mlflow.sklearn","from sklearn.linear_model import Ridge","from sklearn.datasets import make_regression","from sklearn.model_selection import train_test_split","X,y = make_regression(100,5,noise=15,random_state=0)","Xtr,Xte,ytr,yte = train_test_split(X,y,test_size=0.2)","mlflow.sklearn.autolog()","with mlflow.start_run():","  Ridge(alpha=1.0).fit(Xtr,ytr)","  # MLflow captured: alpha, r2, mse, model artifact — all automatic"]},
+  "ML-w6-d3":{title:"Compare Models",tool:"MLflow",difficulty:2,objective:"Log and compare multiple runs — how ML teams pick the best model systematically",steps:["import mlflow","from sklearn.linear_model import Ridge, Lasso","from sklearn.datasets import make_regression","from sklearn.model_selection import cross_val_score","X,y = make_regression(200,10,noise=20,random_state=0)","for cls,alpha in [(Ridge,0.1),(Ridge,1.0),(Lasso,0.1),(Lasso,1.0)]:","  with mlflow.start_run(run_name=f'{cls.__name__}_a{alpha}'):","    cv = cross_val_score(cls(alpha=alpha),X,y,cv=5,scoring='r2')","    mlflow.log_metrics({'cv_r2':cv.mean(),'cv_std':cv.std()})","    print(f'{cls.__name__} a={alpha}: {cv.mean():.3f}')"]},
+  "ML-w6-d4":{title:"MLflow Model Registry",tool:"MLflow",difficulty:3,objective:"Promote models through Staging → Production — how teams gate deployment",steps:["import mlflow; from mlflow.tracking import MlflowClient","client = MlflowClient()","# After logging: register model","# mlflow.register_model(f'runs:/{run_id}/model', 'IBMRegressor')","# Stage transitions:","# client.transition_model_version_stage('IBMRegressor','1','Staging')","# client.transition_model_version_stage('IBMRegressor','1','Production')","# Load production model:","# model = mlflow.sklearn.load_model('models:/IBMRegressor/Production')","print('Staging → test first, Production → live traffic, Archived → retired')"]},
+  "ML-w6-d5":{title:"FastAPI Model Serving",tool:"FastAPI+MLflow",difficulty:3,objective:"Serve a registered MLflow model as a REST API — the industry standard deployment path",steps:["pip install fastapi uvicorn mlflow scikit-learn","# serve.py:","from fastapi import FastAPI","from pydantic import BaseModel","import mlflow.sklearn, numpy as np","app = FastAPI()","model = mlflow.sklearn.load_model('models:/IBMRegressor/Production')","class PredReq(BaseModel): features: list[float]","@app.post('/predict')","async def predict(req: PredReq):","  pred = model.predict([req.features])[0]","  return {'prediction': float(pred)}","# uvicorn serve:app --reload"]},
+
+  // ML Course — Week 7 (Regression)
+  "ML-w7-d1":{title:"Data Drift Detection",tool:"Evidently AI",difficulty:4,objective:"Detect when production data drifts from training — the #1 cause of silent model failure",steps:["pip install evidently","import pandas as pd, numpy as np","from evidently.report import Report","from evidently.metrics import DatasetDriftMetric","np.random.seed(0)","ref = pd.DataFrame({'age':np.random.normal(35,10,500),'income':np.random.normal(60,20,500)})","cur = pd.DataFrame({'age':np.random.normal(35,10,200),'income':np.random.normal(80,30,200)})","report = Report(metrics=[DatasetDriftMetric()])","report.run(reference_data=ref, current_data=cur)","report.save_html('/tmp/drift.html')","print('Drift report saved → open /tmp/drift.html')"]},
+
+  // ML Course — Week 8 (Classification)
+  "ML-w8-d1":{title:"Docker for ML Model",tool:"Docker",difficulty:2,objective:"Package your IBM ML model in Docker — deploy it on any cloud, any server",steps:["# requirements.txt: scikit-learn fastapi uvicorn mlflow","# Dockerfile:","# FROM python:3.11-slim","# WORKDIR /app","# COPY requirements.txt .","# RUN pip install --no-cache-dir -r requirements.txt","# COPY . .","# EXPOSE 8000","# CMD ['uvicorn', 'serve:app', '--host', '0.0.0.0', '--port', '8000']","# Build: docker build -t ibm-ml-model .","# Run:   docker run -p 8000:8000 ibm-ml-model","print('Golden rule: pin all versions in requirements.txt for reproducibility')"]},
+
+  // ML Course — Week 9 (Clustering)
+  "ML-w9-d1":{title:"W&B Experiment Tracking",tool:"Weights & Biases",difficulty:3,objective:"Track clustering experiments with W&B — visualise every run on a shared dashboard",steps:["pip install wandb scikit-learn","import wandb","from sklearn.cluster import KMeans","from sklearn.datasets import make_blobs","wandb.init(project='ibm-clustering', config={'k':3,'max_iter':300})","X, _ = make_blobs(n_samples=300, centers=3, random_state=42)","km = KMeans(n_clusters=wandb.config.k, max_iter=wandb.config.max_iter, random_state=0).fit(X)","wandb.log({'inertia': km.inertia_, 'n_iter': km.n_iter_})","wandb.finish()","print('View at: https://wandb.ai')"]},
+};
+
+
+// ── DailyLab component — injected by lab enhancement ─────────────────────────
+function DailyLab({ labKey, labData, color, dark, baseSize }) {
+  const fs = baseSize || 14;
+  if (!labData) return null;
+  const [open, setOpen] = React.useState(false);
+  const [done, setDone] = React.useState(() => {
+    try { return JSON.parse(localStorage.getItem('lab_done_' + labKey) || 'false'); } catch { return false; }
+  });
+  const diffColors = ['','#22c55e','#84cc16','#f59e0b','#f97316','#ef4444'];
+  const diffColor = diffColors[labData.difficulty] || '#64748b';
+  const diffDots = '●'.repeat(labData.difficulty) + '○'.repeat(5 - labData.difficulty);
+  const isDark = dark !== false;
+  const toggleDone = (e) => {
+    e.stopPropagation();
+    const next = !done; setDone(next);
+    try { localStorage.setItem('lab_done_' + labKey, JSON.stringify(next)); } catch {}
+  };
+  return (
+    <div style={{ margin:'20px 0 0', border:`1px solid ${done ? '#22c55e44' : (isDark?'#1e293b':'#d1d5db')}`,
+                  borderRadius:'10px', background: done ? 'rgba(34,197,94,0.04)' : (isDark?'rgba(15,23,42,0.5)':'rgba(248,250,252,0.8)'),
+                  overflow:'hidden' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:'10px', padding:'12px 16px',
+                    cursor:'pointer', userSelect:'none',
+                    background: done ? 'rgba(34,197,94,0.06)' : 'rgba(255,255,255,0.02)' }}
+           onClick={() => setOpen(o => !o)}>
+        <span style={{ fontSize:'15px' }}>🔬</span>
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontSize:`${fs - 1}px`, fontWeight:700, color: isDark?'#e2e8f0':'#1e293b',
+                        whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+            Daily Lab: {labData.title}
+          </div>
+          <div style={{ fontSize:`${fs - 3}px`, color:'#64748b', marginTop:'2px' }}>
+            <span style={{ color:diffColor, marginRight:'8px', letterSpacing:'-1px' }}>{diffDots}</span>
+            <span style={{ color:'#475569' }}>{labData.tool}</span>
+          </div>
+        </div>
+        <button style={{ padding:'3px 10px', borderRadius:'5px', fontSize:`${fs - 4}px`, fontWeight:600,
+                         cursor:'pointer', flexShrink:0,
+                         border:`1px solid ${done ? '#22c55e' : '#334155'}`,
+                         background: done ? 'rgba(34,197,94,0.12)' : 'transparent',
+                         color: done ? '#22c55e' : '#64748b' }}
+                onClick={toggleDone}>
+          {done ? '✓ Done' : 'Mark Done'}
+        </button>
+        <span style={{ color:'#475569', fontSize:'11px', marginLeft:'4px' }}>{open ? '▲' : '▼'}</span>
+      </div>
+      {open && (
+        <div style={{ padding:'0 16px 14px', borderTop:`1px solid ${isDark?'#1e293b':'#e2e8f0'}` }}>
+          <p style={{ fontSize:`${fs - 3}px`, color: isDark?'#94a3b8':'#475569', margin:'10px 0 8px', lineHeight:1.6 }}>
+            {labData.objective}
+          </p>
+          <div style={{ fontFamily:'"JetBrains Mono","IBM Plex Mono",monospace', fontSize:`${fs - 4}px`,
+                        background: isDark?'#0c1117':'#f8fafc', borderRadius:'6px', padding:'10px 12px',
+                        overflowX:'auto', lineHeight:1.7 }}>
+            {labData.steps.map((s, i) => (
+              <div key={i} style={{ color: s.startsWith('#') ? (isDark?'#64748b':'#94a3b8') :
+                                           s.startsWith('pip') || s.startsWith('npm') || s.startsWith('sudo apt') ? '#f59e0b' :
+                                           (isDark?'#86efac':'#15803d') }}>
+                {s}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(React.createElement(App));

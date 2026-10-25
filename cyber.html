@@ -16173,6 +16173,12 @@ function DayView({ day, onBack, onComplete, onToggleComplete, isDone, fontSize =
           </div>
         )}
 
+        {/* DAILY LAB TAB (industrial lab for current day) */}
+        {tab === "notes" && (() => {
+          const _cyLabData = CYBER_LABS[day.id];
+          return <DailyLab labKey={`cyber-${day.id}`} labData={_cyLabData} color={day.color} dark={true} baseSize={fontSize || 14} />;
+        })()}
+
         {/* QUIZ TAB */}
         {tab === "quiz" && <QuizEngine day={day} />}
 
@@ -16400,6 +16406,103 @@ function App() {
   );
 }
 
+
+
+// ── Cybersecurity Bootcamp — per-day lab data (DoD-aligned) ────────────────────
+// Tools: Wazuh (SIEM), Suricata (IDS), Trivy (container scan), Semgrep (SAST)
+// Key: day.id (numeric, 1-98)
+const CYBER_LABS = {
+  1:{title:"Wireshark First Capture",tool:"Wireshark",difficulty:1,objective:"Capture and analyse your first network packets — the foundational skill for all security analysis",steps:["sudo apt-get install -y wireshark","# Open Wireshark → select eth0 or en0","# Click blue shark fin to start","# Open browser → visit http://example.com","# Stop capture → filter: http","# Observe: src IP, dst IP, method, status code","print('All SOC analysts use Wireshark daily')"]},
+  2:{title:"TCP 3-Way Handshake",tool:"Wireshark",difficulty:1,objective:"Dissect a TCP handshake — required knowledge for CompTIA Network+ exam",steps:["# In Wireshark, filter: tcp.flags.syn == 1","# Find SYN → SYN-ACK → ACK sequence","# DoD STIG: all sessions must terminate properly (FIN handshake)","print('TCP 3-way: SYN → SYN-ACK → ACK (connection established)')","print('TCP 4-way close: FIN → ACK → FIN → ACK')"]},
+  3:{title:"Subnet Calculator",tool:"Python",difficulty:1,objective:"Calculate subnets programmatically — Network+ requires manual calc, Python verifies it",steps:["import ipaddress","network = ipaddress.ip_network('192.168.10.0/24')","print(f'Network:   {network.network_address}')","print(f'Broadcast: {network.broadcast_address}')","print(f'Mask:      {network.netmask}')","print(f'Hosts:     {network.num_addresses - 2}')","for sub in network.subnets(prefixlen_diff=1): print(f'Subnet: {sub}')"]},
+  4:{title:"Port Scanning with nmap",tool:"nmap",difficulty:2,objective:"Scan open ports — first step in network reconnaissance and vulnerability assessment",steps:["sudo apt-get install -y nmap","# Discover hosts: nmap -sn 192.168.1.0/24","# Version detect: nmap -sV localhost","# Common DoD ports: 22=SSH  80=HTTP  443=HTTPS  3389=RDP  445=SMB","print('DoD STIG: disable Telnet (port 23) — use SSH only (FIPS 140-2)')"]},
+  5:{title:"DNS Analysis",tool:"dig",difficulty:1,objective:"DNS resolution — manipulation is the basis of phishing and MITM attacks",steps:["# Install: sudo apt-get install -y dnsutils","# A record: dig example.com A","# MX record: dig example.com MX","# SPF/DKIM: dig example.com TXT","# Reverse: dig -x 8.8.8.8","print('DNS is the phone book — attackers poison it constantly')"]},
+  6:{title:"Wazuh SIEM Deploy",tool:"Wazuh",difficulty:2,objective:"Deploy Wazuh — the open-source DoD-compatible SIEM used in government SOCs",steps:["# Docker Compose deploy:","# curl -sO https://packages.wazuh.com/4.7/docker/docker-compose.yml","# docker-compose up -d  (wait ~2 min)","# https://localhost  →  admin / SecretPassword","# Wazuh = SIEM + FIM + Vuln scan + NIST/PCI/HIPAA dashboards","print('Wazuh = open-source Splunk. DoD-compatible under STIG CAT II.')"]},
+  7:{title:"Wazuh Agent Enrollment",tool:"Wazuh",difficulty:2,objective:"Enroll a Linux endpoint in Wazuh — every monitored host needs an agent",steps:["# On manager: sudo /var/ossec/bin/manage_agents","# On agent: sudo apt-get install wazuh-agent","# sudo /var/ossec/bin/manage_agents -i <key>","# sudo systemctl start wazuh-agent && sudo systemctl enable wazuh-agent","# Verify: Wazuh dashboard → Agents → Status: Active","print('DoD requirement: ALL endpoints must have an agent (DISA STIG V-68719)')"]},
+  8:{title:"File Integrity Monitoring",tool:"Wazuh FIM",difficulty:2,objective:"Configure FIM to detect unauthorized file changes — STIG mandatory for all servers",steps:["# Edit /var/ossec/etc/ossec.conf:","# <syscheck>","#   <directories check_all='yes'>/etc,/usr/bin,/usr/sbin</directories>","#   <directories realtime='yes'>/tmp</directories>","# </syscheck>","# sudo systemctl restart wazuh-agent","# Test: echo 'test' >> /etc/hosts","# Dashboard: Integrity Monitoring → see the alert","print('FIM alert on /etc/sudoers = possible privesc = P1 incident')"]},
+  9:{title:"Password Cracking Lab",tool:"John the Ripper",difficulty:2,objective:"Crack weak passwords — understand why DoD enforces 15-char minimum complexity",steps:["sudo apt-get install -y john","# Test against rockyou wordlist:","# john --wordlist=/usr/share/wordlists/rockyou.txt /tmp/test.shadow","# DoD password policy (DISA STIG):","#   Min 15 chars, upper+lower+digit+special","#   No reuse for 24 generations, max age 60 days","print('If John cracks it in < 1hr → policy too weak')"]},
+  10:{title:"OpenSSL Cryptography",tool:"OpenSSL",difficulty:2,objective:"Hash, encrypt, and generate certs with OpenSSL — foundational DoD PKI operations",steps:["# Hash: echo 'hello' | openssl dgst -sha256","# Gen cert: openssl genrsa -out key.pem 4096","#           openssl req -new -x509 -key key.pem -out cert.pem -days 365","# View:  openssl x509 -in cert.pem -text -noout | head -30","# Encrypt: openssl enc -aes-256-cbc -in secret.txt -out secret.enc -pbkdf2","print('DoD PKI: AES-256 + RSA-4096 minimum — anything less is non-compliant')"]},
+  11:{title:"Suricata IDS Deploy",tool:"Suricata",difficulty:3,objective:"Deploy Suricata network IDS — used in DoD perimeter defense",steps:["sudo apt-get install -y suricata","# Download Emerging Threats rules (DoD-compatible, free):","# sudo suricata-update","# Run: sudo suricata -c /etc/suricata/suricata.yaml -i eth0","# View alerts: tail -f /var/log/suricata/fast.log","print('Suricata processes 10+ Gbps — deployed at DoD internet borders')"]},
+  12:{title:"Suricata Custom Rules",tool:"Suricata",difficulty:3,objective:"Write IDS detection rules — separates junior from senior SOC analysts",steps:["# Detect nmap SYN scan:","# alert tcp any any -> $HOME_NET any (msg:'Nmap Scan';","#   flags:S,12; threshold:type threshold,track by_src,count 5,seconds 1;","#   classtype:network-scan; sid:9000001; rev:1;)","# Save to: /etc/suricata/rules/local.rules","# Test: sudo suricata -T -c /etc/suricata/suricata.yaml","print('SID 9000000+ is reserved for custom/local rules')"]},
+  13:{title:"Suricata + Wazuh",tool:"Suricata+Wazuh",difficulty:3,objective:"Feed Suricata into Wazuh SIEM — full kill chain visibility for SOC teams",steps:["# 1. suricata.yaml: enable eve-log → /var/log/suricata/eve.json","# 2. ossec.conf: add localfile block for eve.json","# 3. Restart: sudo systemctl restart suricata wazuh-agent","# Wazuh now correlates network IDS with host events","print('Network IDS + Host SIEM = correlated attack kill chain')"]},
+  14:{title:"Incident Response Triage",tool:"Linux CLI",difficulty:3,objective:"First-responder IR triage on a compromised host — standard SOC procedure",steps:["# 1. Running processes: ps auxf | sort -k3 -rn | head -20","# 2. Network connections: ss -tunap | grep ESTABLISHED","# 3. Persistence: crontab -l; ls /etc/cron*","# 4. Recent changes: find /tmp -newer /etc/passwd -type f","# 5. Users with shells: cat /etc/passwd | grep -v nologin","print('NEVER patch before collecting forensic evidence!')","print('Document everything: time, command, output. Chain of custody.')"]},
+  15:{title:"Trivy Container Scanning",tool:"Trivy",difficulty:2,objective:"Scan container images for CVEs — required by DoD STIG for containerized workloads",steps:["wget https://github.com/aquasecurity/trivy/releases/download/v0.50.0/trivy_0.50.0_Linux-64bit.deb","sudo dpkg -i trivy_0.50.0_Linux-64bit.deb","# Scan image: trivy image python:3.11","# CRITICAL/HIGH only:","# trivy image --severity CRITICAL,HIGH nginx:latest","# JSON output: trivy image --format json python:3.11 > trivy.json","print('DoD: no CRITICAL CVEs allowed in production container images')"]},
+  16:{title:"Semgrep SAST",tool:"Semgrep",difficulty:3,objective:"Static application security testing — finds vulns in code before deployment",steps:["pip install semgrep","# Scan Python: semgrep --config=p/python .","# OWASP Top 10: semgrep --config=p/owasp-top-ten .","# Secrets: semgrep --config=p/secrets .","# CI gate: semgrep --config=p/python --error .  (exits 1 if vuln found)","print('DoD Software Assurance: all code must pass SAST before production')"]},
+  17:{title:"SBOM with Syft",tool:"Syft+Grype",difficulty:3,objective:"Generate a Software Bill of Materials — EO 14028 requires SBOMs for all software",steps:["# Install Syft:","# curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh","# SBOM for container: syft python:3.11 -o cyclonedx-json > sbom.json","# SBOM for project:   syft dir:. -o cyclonedx-json > proj-sbom.json","# Scan for CVEs:     grype sbom:sbom.json","print('SBOM = ingredient list. Required by EO 14028 (May 2021)')"]},
+  18:{title:"Python Log Parser",tool:"Python+regex",difficulty:2,objective:"Parse security logs with Python — foundational skill for SIEM rule writing and automation",steps:["import re","log = '192.168.1.50 - - [20/Nov/2024:10:01:52 +0000] \"GET /admin HTTP/1.1\" 403 287'","m = re.match(r'(\\S+) .+ \\[(.*?)\\] \"(\\w+) (\\S+) HTTP.+\" (\\d{3}) (\\d+)', log)","if m:","  ip, time, method, path, status, size = m.groups()","  print(f'IP: {ip}  Status: {status}  Path: {path}')","  if status == '403': print('⚠ ACCESS DENIED')","  if '/admin' in path: print('🚨 Admin access attempt')"]},
+  19:{title:"Ansible STIG Hardening",tool:"Ansible",difficulty:4,objective:"Automate STIG hardening with Ansible — manual STIG for 100 servers is impossible",steps:["pip install ansible","ansible-galaxy collection install ansible.posix","# DISA STIG role: ansible-galaxy install MindPointGroup.RHEL9-STIG","# harden.yml:","# - hosts: all","#   become: yes","#   roles: [MindPointGroup.RHEL9-STIG]","# Dry run: ansible-playbook -i inventory harden.yml --check","# Apply:   ansible-playbook -i inventory harden.yml","print('DoD: STIG compliance required within 30 days of deployment')"]},
+  20:{title:"DevSecOps Pipeline",tool:"Trivy+Semgrep+ZAP",difficulty:4,objective:"Full DevSecOps: SAST + container scan + DAST — DoD DevSecOps Reference Design v2.0",steps:["# GitHub Actions pipeline stages:","# 1. SAST:   semgrep --config=p/python --error .","# 2. Build:  docker build -t app .","# 3. Scan:   trivy image --exit-code 1 app","# 4. Deploy: docker run -d -p 8000:8000 app","# 5. DAST:   zap-baseline.py -t http://localhost:8000","print('All 3 gates: shift security left → cheaper to fix early')"]},
+  21:{title:"Wazuh Compliance Report",tool:"Wazuh",difficulty:3,objective:"Export compliance dashboards for RMF packages — required for ATO approval",steps:["# In Wazuh dashboard:","# Security Events → NIST 800-53 (mapped to AC-2, AU-2, etc.)","# Security Events → CIS Controls","# Export: Dashboards → Share → Generate PDF","# DoD RMF (NIST SP 800-137):","#   Continuous monitoring = automated near-real-time SIEM","print('Wazuh compliance PDF → paste into your RMF ATO package')","print('Your AO (Authorising Official) needs these dashboards')"]},
+};
+
+
+// ── DailyLab component — injected by lab enhancement ─────────────────────────
+function DailyLab({ labKey, labData, color, dark, baseSize }) {
+  const fs = baseSize || 14;
+  if (!labData) return null;
+  const [open, setOpen] = React.useState(false);
+  const [done, setDone] = React.useState(() => {
+    try { return JSON.parse(localStorage.getItem('lab_done_' + labKey) || 'false'); } catch { return false; }
+  });
+  const diffColors = ['','#22c55e','#84cc16','#f59e0b','#f97316','#ef4444'];
+  const diffColor = diffColors[labData.difficulty] || '#64748b';
+  const diffDots = '●'.repeat(labData.difficulty) + '○'.repeat(5 - labData.difficulty);
+  const isDark = dark !== false;
+  const toggleDone = (e) => {
+    e.stopPropagation();
+    const next = !done; setDone(next);
+    try { localStorage.setItem('lab_done_' + labKey, JSON.stringify(next)); } catch {}
+  };
+  return (
+    <div style={{ margin:'20px 0 0', border:`1px solid ${done ? '#22c55e44' : (isDark?'#1e293b':'#d1d5db')}`,
+                  borderRadius:'10px', background: done ? 'rgba(34,197,94,0.04)' : (isDark?'rgba(15,23,42,0.5)':'rgba(248,250,252,0.8)'),
+                  overflow:'hidden' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:'10px', padding:'12px 16px',
+                    cursor:'pointer', userSelect:'none',
+                    background: done ? 'rgba(34,197,94,0.06)' : 'rgba(255,255,255,0.02)' }}
+           onClick={() => setOpen(o => !o)}>
+        <span style={{ fontSize:'15px' }}>🔬</span>
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontSize:`${fs - 1}px`, fontWeight:700, color: isDark?'#e2e8f0':'#1e293b',
+                        whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+            Daily Lab: {labData.title}
+          </div>
+          <div style={{ fontSize:`${fs - 3}px`, color:'#64748b', marginTop:'2px' }}>
+            <span style={{ color:diffColor, marginRight:'8px', letterSpacing:'-1px' }}>{diffDots}</span>
+            <span style={{ color:'#475569' }}>{labData.tool}</span>
+          </div>
+        </div>
+        <button style={{ padding:'3px 10px', borderRadius:'5px', fontSize:`${fs - 4}px`, fontWeight:600,
+                         cursor:'pointer', flexShrink:0,
+                         border:`1px solid ${done ? '#22c55e' : '#334155'}`,
+                         background: done ? 'rgba(34,197,94,0.12)' : 'transparent',
+                         color: done ? '#22c55e' : '#64748b' }}
+                onClick={toggleDone}>
+          {done ? '✓ Done' : 'Mark Done'}
+        </button>
+        <span style={{ color:'#475569', fontSize:'11px', marginLeft:'4px' }}>{open ? '▲' : '▼'}</span>
+      </div>
+      {open && (
+        <div style={{ padding:'0 16px 14px', borderTop:`1px solid ${isDark?'#1e293b':'#e2e8f0'}` }}>
+          <p style={{ fontSize:`${fs - 3}px`, color: isDark?'#94a3b8':'#475569', margin:'10px 0 8px', lineHeight:1.6 }}>
+            {labData.objective}
+          </p>
+          <div style={{ fontFamily:'"JetBrains Mono","IBM Plex Mono",monospace', fontSize:`${fs - 4}px`,
+                        background: isDark?'#0c1117':'#f8fafc', borderRadius:'6px', padding:'10px 12px',
+                        overflowX:'auto', lineHeight:1.7 }}>
+            {labData.steps.map((s, i) => (
+              <div key={i} style={{ color: s.startsWith('#') ? (isDark?'#64748b':'#94a3b8') :
+                                           s.startsWith('pip') || s.startsWith('npm') || s.startsWith('sudo apt') ? '#f59e0b' :
+                                           (isDark?'#86efac':'#15803d') }}>
+                {s}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(React.createElement(App));
