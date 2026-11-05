@@ -1,9 +1,12 @@
 # StudyHub — Decision Record
 
-**Version:** 1.0  
-**Date:** 2026-11-04  
-**Status:** Phase 0 — All decisions below are confirmed and locked unless explicitly reopened by the owner  
-**Author:** Phase 0 Audit (Claude Sonnet 4.6, session https://claude.ai/code/session_01GrXQBHN1FfE3b1PuBWsGTt)
+**Version:** 1.1  
+**Date:** 2026-11-05  
+**Status:** Phase 0 complete — Phase 1 approved with corrections. All confirmed decisions below are authoritative unless explicitly superseded by the owner.  
+**Author:** Phase 0 Audit (Claude Sonnet 4.6, session https://claude.ai/code/session_01GrXQBHN1FfE3b1PuBWsGTt)  
+**Changelog:**
+- v1.0 (2026-11-04): Initial Phase 0 decisions
+- v1.1 (2026-11-05): Owner approval corrections applied — DR-003, DR-009, DR-013, DR-014, DR-019, DR-020 revised; DR-OPEN-001 resolved; DR-OPEN-008 reclassified; new DR-021 (pilot success criteria) and DR-022 (testing acceptance criteria) added
 
 ---
 
@@ -32,11 +35,11 @@ Confirmed decisions are authoritative. Reopening a confirmed decision requires a
 **Rationale:** A multi-discipline learning platform targeting both a global (IT certs) and Nigerian (WAEC/NECO/JAMB) audience requires mobile-first reach. Native iOS and Android provide first-class mobile experiences. Web is included as the primary surface for the Phase 1 controlled pilot.
 
 **Consequences:**
-- Web is the primary surface for Phase 1 (90-day controlled pilot period)
+- Web is the primary surface for Phase 1 (controlled pilot)
 - Native iOS and Android are confirmed targets but implemented in Phase 2
 - Native must be accounted for in Phase 0 architecture and feasibility audit (done — see STUDYHUB_TARGET_ARCHITECTURE.md)
 - Native implementation follows approval gate: Phase 1 retrospective → Phase 2 authorization
-- API design in Phase 1 must be API-first (no web-only contracts)
+- API design in Phase 1 must be API-first (no web-only contracts); see DR-012-NATIVE below
 
 ---
 
@@ -53,22 +56,30 @@ Confirmed decisions are authoritative. Reopening a confirmed decision requires a
 - Pilot size is bounded — not an open public launch
 - AI usage costs are predictable and manageable during pilot
 - Feedback can be collected directly from known users
+- Pilot success must be evaluated against measurable criteria before Phase 2 approval (see DR-021)
 
 ---
 
 ### DR-003 — Repository Identity
-**Status:** Confirmed  
-**Date confirmed:** Phase 0
+**Status:** Confirmed (implementation timing revised — v1.1)  
+**Date confirmed:** Phase 0  
+**Revised:** 2026-11-05
 
 **Decision:** The platform will be named StudyHub, owned by AlphaSoft LLC. The repository will be renamed from `bootcamp-hub` to `studyhub`.
 
-**Rationale:** The existing name `bootcamp-hub` is too narrow for a multi-discipline platform. StudyHub accurately represents the broader mission.
+**Timing constraint (added v1.1):** The repository rename must NOT occur until:
+1. The Phase 1 replacement deployment is fully operational and verified in production
+2. A documented rollback plan exists for the rename
+3. The owner has explicitly approved the rename timing
+
+**Rationale:** Renaming the repository before the replacement deployment is ready risks breaking the existing GitHub Pages deployment without a live successor. The existing bootcamp-hub serves real learners and must not be disrupted without a proven replacement.
 
 **Consequences:**
-- Repository rename (`AlphaSoftJB/bootcamp-hub` → `AlphaSoftJB/studyhub`) must happen at Phase 1 start
-- `package.json` name, `vite.config.ts` base path, all GitHub Pages configuration must be updated
-- Existing GitHub Pages URL will break — acceptable since Phase 1 moves to a new deployment target
-- All internal documentation uses "StudyHub" from this point forward
+- Repository rename (`AlphaSoftJB/bootcamp-hub` → `AlphaSoftJB/studyhub`) is deferred to late Phase 1 Sprint 11–12 or post-pilot, not Sprint 1
+- Sprint 1 must NOT include the repository rename
+- `package.json` name, `vite.config.ts` base path, and GitHub Pages configuration are updated at rename time
+- Existing GitHub Pages URL remains live until the new deployment is verified
+- All internal documentation uses "StudyHub" from this point forward regardless of repository name
 
 ---
 
@@ -164,7 +175,7 @@ Confirmed decisions are authoritative. Reopening a confirmed decision requires a
 **Database:** MySQL 8.x  
 **Native (Phase 2):** React Native + Expo (Managed Workflow)
 
-**Rationale:** 
+**Rationale:**
 - React frontend: existing codebase, strong ecosystem, shared types with React Native
 - Spring Boot: strong security ecosystem (Spring Security), mature JPA, familiar to enterprise Java ecosystem, excellent documentation for a developer learning backend
 - Modular monolith: simpler to operate than microservices for a solo developer; clean domain boundaries allow future extraction if needed
@@ -178,19 +189,42 @@ Confirmed decisions are authoritative. Reopening a confirmed decision requires a
 
 ---
 
-### DR-009 — Authentication Pattern
-**Status:** Confirmed  
-**Date confirmed:** Phase 0
+### DR-009 — Authentication and Session Security
+**Status:** Confirmed (expanded — v1.1)  
+**Date confirmed:** Phase 0  
+**Expanded:** 2026-11-05
 
-**Decision:** JWT access tokens stored in-memory only (never localStorage). Refresh tokens in httpOnly cookies (never accessible to JavaScript).
+**Decision:** JWT access tokens stored in-memory only (never localStorage). Refresh tokens in httpOnly, Secure, SameSite=Strict cookies (never accessible to JavaScript). The following security controls are required at launch:
 
-**Rationale:** Storing access tokens in localStorage exposes them to XSS attacks. The in-memory + httpOnly cookie pattern is the correct security baseline for web applications.
+**Token management:**
+- Access token: short-lived (15 minutes), stored in-memory only, never persisted
+- Refresh token: longer-lived (7–30 days), httpOnly + Secure + SameSite=Strict cookie, never accessible to JS
+- Refresh token rotation: every use of a refresh token issues a new token and invalidates the old one
+- Refresh token revocation: backend maintains a revocation store; logout invalidates the token server-side
+- Reuse detection: if a rotated (already-invalidated) refresh token is presented, the entire family is revoked
+
+**Session controls:**
+- Session expiration: idle timeout + absolute maximum session length enforced server-side
+- Silent refresh: Axios interceptor attempts silent token refresh on 401 before redirecting to login
+- Concurrent session policy: decision deferred — default is allow concurrent sessions; owner may restrict
+
+**Transport and application security:**
+- CSRF protection: since refresh tokens are in SameSite=Strict cookies, CSRF is mitigated; double-submit cookie pattern added as defence-in-depth for state-changing endpoints
+- CORS: backend whitelist of allowed origins; no wildcard `*` in production
+- Secure cookies: `Secure` flag enforced in production (requires HTTPS); `HttpOnly` always set
+
+**Account security:**
+- Password reset: time-limited, single-use token sent to verified email; invalidated on use or expiry
+- Email verification: required before login is fully enabled for new accounts
+- Password requirements: minimum 12 characters; bcrypt hashing (cost factor ≥ 12)
+
+**Rationale:** A platform handling learner progress, subscription data, and AI interactions requires a complete authentication security baseline. The initial DR-009 addressed token storage; this expansion addresses the full session security surface.
 
 **Consequences:**
 - GistSyncContext pattern of storing tokens in localStorage must NOT be replicated
-- Access tokens lost on page refresh → silent refresh endpoint required (`POST /api/auth/refresh`)
-- 401 handling in Axios interceptor must attempt silent refresh before redirecting to login
+- Sprint 1–2 auth implementation must include: JWT issue/refresh, CSRF, CORS config, bcrypt, email verification flow, password reset flow
 - Native apps (Phase 2) use a different token storage mechanism (SecureStore for Expo)
+- HTTPS is required in production — not optional (see also Sprint 11–12 deployment tasks)
 
 ---
 
@@ -232,43 +266,94 @@ Confirmed decisions are authoritative. Reopening a confirmed decision requires a
 
 **Decision:** All content follows a five-state lifecycle: `DRAFT → IN_REVIEW → APPROVED → PUBLISHED → DEPRECATED`. Only `PUBLISHED` content is visible to learners.
 
-**Rationale:** Content quality control is essential for an educational platform. The lifecycle ensures reviewed, accurate content reaches learners.
+**Consequence (added v1.1):** Direct SQL is NOT an acceptable normal publishing mechanism. Content status transitions must go through controlled backend APIs or a validated import process that enforces lifecycle rules. Direct SQL access to the `content_status` column is restricted to emergency recovery only, requires owner approval, and must be logged.
+
+**Rationale:** Content quality control is essential for an educational platform. The lifecycle ensures reviewed, accurate content reaches learners. Bypassing it via direct SQL creates an uncontrolled pathway that circumvents safeguards.
 
 **Consequences:**
 - Backend enforces content status filtering on all learner-facing content endpoints
-- Existing bootcamp content (Cybersecurity, IBM) seeds as `PUBLISHED` after validation
+- Existing bootcamp content (Cybersecurity, IBM) seeds as `PUBLISHED` after validation — via seed script API calls, not direct SQL inserts
 - AI-generated content seeds as `DRAFT` (enforced at the AI orchestration layer)
 - USMLE AI-generated content requires qualified reviewer approval before `APPROVED` (see DR-007)
 - An admin/reviewer content management interface is needed before USMLE launch
+- Seed script (Sprint 3–4) calls the content API to load content; it does not INSERT directly into content tables
 
 ---
 
 ### DR-013 — Mastery Model
-**Status:** Confirmed  
-**Date confirmed:** Phase 0
+**Status:** Confirmed (evidence-based approach required — v1.1)  
+**Date confirmed:** Phase 0  
+**Revised:** 2026-11-05
 
-**Decision:** Progress is tracked as competency mastery per topic/domain — not as completion percentage.
+**Decision:** Progress is tracked as competency mastery per topic/domain. Mastery is an evidence-based score, not a single-assessment calculation.
 
-**Rationale:** Completion percentage ("I read 80% of lessons") is a weaker signal than mastery ("I can correctly answer 85% of questions on subnetting"). Competency mastery aligns with how certification exams are structured and gives learners a more accurate picture of exam readiness.
+**Evidence requirements for mastery:**
+A mastery score for a topic must incorporate multiple factors. A single assessment score alone must never automatically establish or confirm mastery.
+
+Required factors:
+1. **Consistency:** performance across multiple assessment attempts, not a single result
+2. **Difficulty weighting:** harder questions count more toward mastery than easy recall questions
+3. **Recency:** more recent assessments are weighted more heavily than older ones (mastery degrades if not reinforced)
+4. **Volume:** a minimum number of distinct questions answered before mastery is considered established
+5. **Practical performance:** where labs or applied tasks exist, lab completion contributes to mastery alongside quiz results
+
+**Minimum mastery establishment criteria (Phase 1 baseline):**
+- Minimum 3 distinct assessment attempts on a topic before mastery score is stabilized
+- Minimum 15 unique questions answered per topic domain
+- Recency decay: mastery score reduces over time without reinforcement (configurable decay rate, default: 10% per 30 days inactive)
+
+**What mastery is not:**
+- Not a completion percentage ("read 80% of lessons")
+- Not a single exam score (90% on one exam ≠ mastery)
+- Not irreversible (a lapse in practice can reduce mastery score)
+
+**Rationale:** A single assessment score is a noisy signal — it reflects one day's performance, one question set, and may include guessing. Evidence-based mastery more accurately predicts genuine competency and exam readiness.
 
 **Consequences:**
-- `user_mastery` table tracks mastery score per topic, not lesson completion count
+- `user_mastery` table must store: topic_id, attempt_count, question_count, weighted_score, last_assessed_at, recency_factor
+- Mastery calculation is a backend service, not a frontend computation
+- Mastery algorithm implementation is a Phase 1 Sprint 7–8 deliverable (defined before Sprint 9–10 AI integration, which references mastery for revision sessions)
 - Home dashboard shows mastery map, not completion bar
-- Assessment results feed mastery scores (a 90% exam score on "Network Protocols" domain updates that domain's mastery)
 - XP and streaks remain (engagement mechanism) but mastery is the primary progress signal
 
 ---
 
-### DR-014 — PWA Evaluation
-**Status:** Deferred  
-**Date deferred:** Phase 0  
-**Decision required from:** Owner
+### DR-014 — PWA and Responsive Web
+**Status:** Confirmed (clarified — v1.1)  
+**Date confirmed:** Phase 0  
+**Clarified:** 2026-11-05
 
-**Question:** Should StudyHub support PWA (Progressive Web App) features in Phase 1?
+**Decision:**
+- **Responsive web is required** for the Phase 1 pilot. All pages must be functional and usable on mobile browsers without installation. This is not optional.
+- **PWA capabilities** (offline support, home screen install, push notifications via Service Worker) are conditional. They are not a pilot prerequisite and are deferred to a separate owner decision after core functionality is stable.
 
-**Analysis:** PWA would add offline study capability, home screen install, and potentially push notifications on the web before native apps exist in Phase 2. `vite-plugin-pwa` with Workbox makes this tractable. Recommendation: implement after core features are stable in Phase 1 (Sprint 11–12 scope).
+**Rationale:** Responsive web ensures mobile learners can use the platform on day one. PWA adds capability but adds complexity and testing burden. Separating the two prevents PWA scope from blocking the pilot.
 
-**What is blocked:** Sprint 11–12 task list includes PWA implementation conditional on this decision.
+**Consequences:**
+- Sprint 11–12 must include mobile QA on iOS Safari + Android Chrome (responsive, not PWA)
+- PWA implementation (`vite-plugin-pwa`, service worker, manifest) is NOT in Sprint 11–12 unless owner separately approves it after reviewing pilot readiness
+- DR-OPEN-006 (PWA in Phase 1?) is answered: responsive web yes; PWA conditional on a separate decision
+
+---
+
+### DR-015-NATIVE — Phase 1 API Native Compatibility
+**Status:** Confirmed  
+**Date confirmed:** 2026-11-05
+
+**Decision:** Phase 1 backend API contracts must be designed for native client compatibility from the start. No web-only endpoints. No web-specific assumptions baked into API contracts.
+
+**Rationale:** React Native + Expo apps in Phase 2 must be first-class API clients. Rework to remove web-only assumptions after the fact is expensive.
+
+**Required constraints on Phase 1 API design:**
+- All authentication flows must be compatible with token-based auth as used by React Native (SecureStore) — not dependent on cookies
+- API responses must not embed HTML or assume a browser context
+- File/media URLs must be absolute, not relative to a web root
+- All endpoints returning lists must support pagination from day one
+- Error response format must be consistent and machine-parseable (not HTML error pages)
+
+**Consequences:**
+- API-first review checkpoint added to Sprint 3–4 (before content API is finalized): confirm no web-only contracts exist
+- Phase 2 native implementation does not require backend changes for existing feature set
 
 ---
 
@@ -339,57 +424,138 @@ Confirmed decisions are authoritative. Reopening a confirmed decision requires a
 
 ---
 
+### DR-021 — Pilot Success Criteria
+**Status:** Confirmed  
+**Date confirmed:** 2026-11-05
+
+**Decision:** Phase 1 pilot must be evaluated against defined, measurable success criteria before Phase 2 is authorized.
+
+**Pilot success metrics (minimum thresholds for Phase 2 authorization):**
+
+| Category | Metric | Minimum threshold |
+|----------|--------|-------------------|
+| Onboarding | % of invited users who complete registration and first lesson | ≥ 70% |
+| Engagement | Average lessons completed per active user per week | ≥ 3 |
+| Retention | % of users active at week 4 of pilot | ≥ 50% |
+| Assessment | Average improvement in mastery score from first to second assessment attempt per domain | Positive improvement in ≥ 60% of users |
+| AI quality | % of AI responses rated useful by learners (in-app thumbs up/down) | ≥ 70% positive |
+| AI cost | AI cost per active user per week | Within pre-approved budget (owner sets before pilot) |
+| Feedback | % of pilot users who complete post-pilot survey | ≥ 60% |
+| Reliability | Uptime during pilot period | ≥ 99% measured availability |
+
+**What to do if thresholds are not met:** Any metric below threshold triggers a retrospective before Phase 2 authorization. Missing ≥ 3 metrics requires a remediation plan approved by the owner.
+
+**Rationale:** Without defined success criteria, the Phase 1 → Phase 2 decision would be subjective. Measurable thresholds make the retrospective and authorization process objective.
+
+**Consequences:**
+- Sprint 11–12 must include in-app AI feedback collection (thumbs up/down on AI responses)
+- Backend must track: registration completion, lesson completion per user per week, return visits, mastery score change over time
+- Pilot cost budget for AI must be set by owner before pilot launch (see DR-OPEN-010)
+
+---
+
+### DR-022 — Testing Acceptance Criteria
+**Status:** Confirmed  
+**Date confirmed:** 2026-11-05
+
+**Decision:** Testing targets are defined by acceptance criteria for critical workflows, not by test count alone. The following critical workflows must have explicit acceptance tests before pilot launch:
+
+**Critical workflow tests required:**
+
+| Workflow | Acceptance criteria |
+|----------|-------------------|
+| Registration and login | New user can register, verify email, log in, and access a lesson without errors |
+| Session refresh | A user active for > 15 minutes can continue without re-login (silent refresh working) |
+| Authorization | An unauthenticated request to any protected endpoint returns 401; a learner cannot access admin endpoints (403) |
+| Lesson completion | Completing a lesson awards correct XP, updates mastery, and persists to database |
+| Assessment scoring | A submitted exam is scored correctly server-side; score matches expected values for a known question set |
+| Mastery calculation | Mastery scores update correctly after multiple assessment attempts with known inputs |
+| Progress migration | A learner's progress from session A is fully visible in session B (different device/browser) |
+| Content lifecycle | A DRAFT lesson is not visible to a learner; a PUBLISHED lesson is visible |
+| AI safety controls | An AI request that exceeds the daily rate limit returns a graceful error, not a provider error |
+| Backup and restore | A database backup can be restored to a clean instance and all data verified intact |
+
+**Test implementation approach:**
+- Vitest unit tests: mastery algorithm, XP engine, scoring logic
+- Spring Boot integration tests (MockMvc): all critical endpoint behaviors including 401/403 cases
+- Playwright E2E tests: registration/login, complete lesson, take exam, view progress
+- Manual QA checklist: mobile Safari + Android Chrome; backup/restore procedure documented and tested
+
+**Rationale:** Test count targets ("write 20 Vitest tests") measure effort, not correctness. Acceptance criteria for critical workflows measure whether the system does what it must do.
+
+**Consequences:**
+- Sprint 11–12 task list is updated to reference these acceptance criteria rather than raw test counts
+- Each critical workflow test must pass before the pilot is opened to invited users
+- Backup and restore procedure documented in `docs/operations/` (new, to be created in Sprint 11–12)
+
+---
+
 ## 5. Data and Migration Decisions
 
 ### DR-019 — Existing Content Migration Approach
-**Status:** Confirmed  
-**Date confirmed:** Phase 0
+**Status:** Confirmed (learner data preservation requirement added — v1.1)  
+**Date confirmed:** Phase 0  
+**Revised:** 2026-11-05
 
 **Decision:** Existing bootcamp content (Cybersecurity, IBM Python+ML) migrates to the database via a one-time Node.js seed script that calls the backend content API. AI Engineering content requires structural mapping before migration can begin.
+
+**Learner data preservation requirement (added v1.1):** Before removing GistSync or any localStorage-based progress, the following must be completed:
+1. **Document all existing progress keys and formats** — a full inventory of every localStorage key used for progress (lesson completion, XP, streaks, lab completion flags, exam attempts, goals) with their data formats
+2. **Define and test a migration/export process** — provide existing learners with a way to export their progress before the transition; if any pilot users have existing bootcamp-hub progress, provide a migration path to StudyHub
+3. **Validation** — the migration/export process must be tested against real localStorage snapshots before GistSync or localStorage progress keys are removed
+4. **Existing learner progress is not disposable** — do not remove progress data or the GistSyncContext until the export/migration process is documented, tested, and communicated to affected users
 
 **Rationale:** A seed script validates the API contract and respects the content lifecycle middleware. Direct SQL insertion bypasses application logic and can introduce inconsistencies.
 
 **Consequences:**
 - Seed script is a Phase 1 Sprint 3–4 deliverable
+- **New Sprint 1–2 deliverable:** localStorage progress key inventory document (`docs/migration/LEARNER_DATA_INVENTORY.md`)
+- **New Sprint 1–2 deliverable:** learner data export/migration tool (or documented process)
 - `cyberDays.js` (103 days), `ibmCurriculum.js` (57 days), all question files, and all lab files are inputs to the seed script
 - AI Engineering (`aiMonths.js`, `aiQuiz.js`, `aiLabs.js`, `aiNotes.js`) blocked on structural mapping decision (see DR-OPEN-009)
-- `cyberLabsNew.js` (72 entries, zero imports) requires a decision before migration (see DR-OPEN-008)
+- `cyberLabsNew.js` (72 entries, zero imports) requires investigation and owner decision before migration (see DR-OPEN-008 — revised below)
 - Stable ID mapping required: `lab_done_1-1` localStorage keys → database IDs for any pilot user progress migration
 
 ---
 
 ### DR-020 — GistSync Removal
-**Status:** Confirmed  
-**Date confirmed:** Phase 0
+**Status:** Confirmed (preconditions required before removal — v1.1)  
+**Date confirmed:** Phase 0  
+**Revised:** 2026-11-05
 
-**Decision:** `GistSyncContext` and all Gist sync functionality are removed in Phase 1. Cross-device progress sync is replaced by server-side storage.
+**Decision:** `GistSyncContext` and all Gist sync functionality are removed in Phase 1. Cross-device progress sync is replaced by server-side storage. However, GistSync must NOT be removed until the learner data preservation preconditions in DR-019 are met.
 
-**Rationale:** GistSync was acceptable for a personal single-user tool. It is not acceptable for a multi-user platform: PAT tokens in localStorage, single-user GitHub account dependency, no real-time sync. Server-side progress (see DR-011) makes GistSync obsolete.
+**Removal preconditions:**
+1. Full localStorage progress key inventory is complete (`docs/migration/LEARNER_DATA_INVENTORY.md` exists)
+2. Learner data export/migration process is documented and tested
+3. Any affected users have been notified and given the opportunity to export their data
+
+**Rationale:** GistSync was acceptable for a personal single-user tool. It is not acceptable for a multi-user platform: PAT tokens in localStorage, single-user GitHub account dependency, no real-time sync. Server-side progress (see DR-011) makes GistSync obsolete. Learner progress, however, is not obsolete — it must be preserved.
 
 **Consequences:**
-- `src/context/GistSyncContext.tsx` is deleted in Phase 1 Sprint 1–2
-- Gist sync section removed from `SettingsPanel.tsx`
-- Any user who set up Gist sync on the existing bootcamp-hub tool loses that sync when they move to StudyHub — acceptable since pilot users are invited fresh
+- GistSync removal is NOT a Sprint 1–2 task — it follows the data preservation work
+- `src/context/GistSyncContext.tsx` is deleted only after preconditions are met
+- Gist sync section removed from `SettingsPanel.tsx` at the same time
 - `LS_TOKEN_KEY = 'gist_token'` localStorage key is cleared and not reused
 
 ---
 
-## 6. Open Decisions (Required from Owner Before Phase 1 Begins)
+## 6. Open Decisions (Required from Owner Before or During Phase 1)
 
-These are explicitly unresolved. Phase 1 implementation cannot begin until all of these are answered.
+These are explicitly unresolved. Items marked **[Blocks Sprint 1]** must be answered before development begins.
 
-| ID | Question | Impact of deferral |
-|----|----------|-------------------|
-| DR-OPEN-001 | Confirm timing of repository rename (`bootcamp-hub` → `studyhub`) | Blocks Sprint 1 setup |
-| DR-OPEN-002 | Pilot registration: invite-only (manual), PIN/token gated, or open? | Affects Sprint 1 auth implementation |
-| DR-OPEN-003 | Hosting for Phase 1 backend: Render, Railway, DigitalOcean, Fly.io? | Affects Sprint 11–12 deployment |
-| DR-OPEN-004 | Static hosting for Phase 1 SPA: Cloudflare Pages, Vercel, Netlify? | Affects Sprint 11–12 deployment |
+| ID | Question | Impact |
+|----|----------|--------|
+| DR-OPEN-001 | ~~Repository rename timing~~ | **Resolved by DR-003 v1.1:** rename deferred to Sprint 11–12 or post-pilot, after deployment verified |
+| DR-OPEN-002 | Pilot registration: invite-only (manual), PIN/token gated, or open? **[Blocks Sprint 1]** | Affects Sprint 1 auth implementation |
+| DR-OPEN-003 | Hosting for Phase 1 backend: Render, Railway, DigitalOcean, Fly.io? **[Blocks Sprint 11–12]** | Affects deployment sprint |
+| DR-OPEN-004 | Static hosting for Phase 1 SPA: Cloudflare Pages, Vercel, Netlify? **[Blocks Sprint 11–12]** | Affects deployment sprint |
 | DR-OPEN-005 | Payment integration in Phase 1 or deferred? | If Phase 1: add ~30hrs to Sprint 11–12 |
-| DR-OPEN-006 | PWA support in Phase 1? (Recommended: yes, Sprint 11–12) | Affects Sprint 11–12 task list |
+| DR-OPEN-006 | ~~PWA in Phase 1?~~ | **Resolved by DR-014 v1.1:** responsive web required; PWA conditional on separate decision after core features stable |
 | DR-OPEN-007 | USMLE: who is the qualified medical content reviewer? | USMLE cannot launch without an answer |
-| DR-OPEN-008 | `cyberLabsNew.js`: integrate into Cybersecurity content or discard? | Affects content seed script scope |
+| DR-OPEN-008 | `cyberLabsNew.js`: integrate into Cybersecurity content or discard? | **Requires investigation first** — 72 entries must be inspected and reported before a decision is made. This is a pre-decision research task, not a blocked decision. |
 | DR-OPEN-009 | AI Engineering curriculum mapping: who does the structural mapping work, and by when? | AI Engineering content cannot migrate until this is done |
-| DR-OPEN-010 | Pilot size: how many invited learners, and which disciplines at launch? | Informs infrastructure sizing and content completeness bar |
+| DR-OPEN-010 | Pilot size: how many invited learners, which disciplines at launch, and what is the weekly AI cost budget per user? | Informs infrastructure sizing, content completeness bar, and DR-021 cost threshold |
 
 ---
 
