@@ -1,13 +1,14 @@
 # StudyHub — Decision Record
 
-**Version:** 1.1  
+**Version:** 1.3  
 **Date:** 2026-11-05  
-**Status:** Phase 0 complete — Phase 1 approved with corrections. All confirmed decisions below are authoritative unless explicitly superseded by the owner.  
+**Status:** Phase 0 complete — Phase 1 approved and in progress. All confirmed decisions below are authoritative unless explicitly superseded by the owner.  
 **Author:** Phase 0 Audit (Claude Sonnet 4.6, session https://claude.ai/code/session_01GrXQBHN1FfE3b1PuBWsGTt)  
 **Changelog:**
 - v1.0 (2026-11-04): Initial Phase 0 decisions
 - v1.1 (2026-11-05): Owner approval corrections applied — DR-003, DR-009, DR-013, DR-014, DR-019, DR-020 revised; DR-OPEN-001 resolved; DR-OPEN-008 reclassified; new DR-021 (pilot success criteria) and DR-022 (testing acceptance criteria) added
 - v1.2 (2026-11-05): DR-023 added — existing bootcamp protection and parallel development constraint; supersedes any roadmap implication that the existing application would be disrupted during development
+- v1.3 (2026-11-05): DR-OPEN-002 and DR-OPEN-010 resolved — pilot registration model (invite-only) and pilot scope (10 learners, Cybersecurity + IBM Python/ML, $25/week AI ceiling) approved by owner; Sprint 1 authorized
 
 ---
 
@@ -548,7 +549,7 @@ These are explicitly unresolved. Items marked **[Blocks Sprint 1]** must be answ
 | ID | Question | Impact |
 |----|----------|--------|
 | DR-OPEN-001 | ~~Repository rename timing~~ | **Resolved by DR-003 v1.1:** rename deferred to Sprint 11–12 or post-pilot, after deployment verified |
-| DR-OPEN-002 | Pilot registration: invite-only (manual), PIN/token gated, or open? **[Blocks Sprint 1]** | Affects Sprint 1 auth implementation |
+| DR-OPEN-002 | ~~Pilot registration: invite-only (manual), PIN/token gated, or open?~~ | **Resolved:** Invite-only with unique single-use invitation codes. See DR-024. |
 | DR-OPEN-003 | Hosting for Phase 1 backend: Render, Railway, DigitalOcean, Fly.io? **[Blocks Sprint 11–12]** | Affects deployment sprint |
 | DR-OPEN-004 | Static hosting for Phase 1 SPA: Cloudflare Pages, Vercel, Netlify? **[Blocks Sprint 11–12]** | Affects deployment sprint |
 | DR-OPEN-005 | Payment integration in Phase 1 or deferred? | If Phase 1: add ~30hrs to Sprint 11–12 |
@@ -556,7 +557,79 @@ These are explicitly unresolved. Items marked **[Blocks Sprint 1]** must be answ
 | DR-OPEN-007 | USMLE: who is the qualified medical content reviewer? | USMLE cannot launch without an answer |
 | DR-OPEN-008 | `cyberLabsNew.js`: integrate into Cybersecurity content or discard? | **Requires investigation first** — 72 entries must be inspected and reported before a decision is made. This is a pre-decision research task, not a blocked decision. |
 | DR-OPEN-009 | AI Engineering curriculum mapping: who does the structural mapping work, and by when? | AI Engineering content cannot migrate until this is done |
-| DR-OPEN-010 | Pilot size: how many invited learners, which disciplines at launch, and what is the weekly AI cost budget per user? | Informs infrastructure sizing, content completeness bar, and DR-021 cost threshold |
+| DR-OPEN-010 | ~~Pilot size: how many invited learners, which disciplines at launch, and what is the weekly AI cost budget per user?~~ | **Resolved:** 10 learners, Cybersecurity + IBM Python/ML, $25/week aggregate AI ceiling. See DR-025. |
+
+---
+
+---
+
+### DR-024 — Pilot Registration Model
+**Status:** Confirmed  
+**Date confirmed:** 2026-11-05 (owner approval, Sprint 1 authorization)
+
+**Decision:** Pilot registration is invite-only. Public registration is disabled. Each invitation is a unique, single-use code. An invitation that has been used cannot be reused. An admin can issue, revoke, and track invitation codes.
+
+**Pilot capacity (Phase 1):** 10 invited learners maximum.
+
+**Admin capabilities required:**
+- Issue new invitation codes (individually or in batch)
+- Revoke an unused invitation code before it is redeemed
+- View all codes: status (unused / redeemed / revoked), issue date, redemption date, redeemed-by user
+- Codes must not expose user PII in listing views unless redeemed
+
+**Registration flow:**
+1. Admin issues invitation code
+2. Owner distributes code to invitee out-of-band (email, message)
+3. Invitee registers at `/register?code=<code>` — code is validated before account creation
+4. On successful registration the code is marked `REDEEMED` and linked to the new user
+5. A code that is already redeemed or revoked returns a clear error — it cannot create another account
+
+**Rationale:** Invite-only registration gives the owner full control over pilot cohort composition and ensures the pilot population is known, intentional, and bounded.
+
+**Consequences:**
+- `invitation_codes` table required in Sprint 1 schema
+- Admin invitation management endpoints required in Sprint 1
+- `/register` endpoint validates invitation code before creating user record
+- Sprint 1 UI includes admin invitation management view
+- Public registration endpoint (`/register` without valid code) returns 403 or redirects to a holding page
+- DR-002 "access is limited to invited learners" is now operationalized
+
+---
+
+### DR-025 — Pilot Scope and AI Budget
+**Status:** Confirmed  
+**Date confirmed:** 2026-11-05 (owner approval, Sprint 1 authorization)
+
+**Decision:** Phase 1 pilot parameters are as follows.
+
+**Pilot scope:**
+- Initial pilot capacity: 10 learners
+- Disciplines at launch: Cybersecurity and IBM Python + ML (AI Engineering deferred — see DR-OPEN-009; USMLE deferred — see DR-007 and DR-OPEN-007)
+- AI Tutor enabled for all pilot learners from day one
+
+**AI cost controls:**
+- Weekly AI spending ceiling: **$25 per week aggregate for the entire pilot** (not per user)
+- Per-user weekly AI usage tracking is required
+- Aggregate pilot-level cost monitoring is required (not just per-user)
+- Configurable rate limits: per-user per-minute bucket + daily cap
+- Spending alerts: admin is notified when aggregate weekly spend reaches 80% of ceiling ($20)
+- Hard limit enforcement: at 100% of ceiling, AI features are suspended for all users until the next billing period or the owner raises the limit — no unbounded usage under any circumstances
+- All AI spend is logged to `ai_usage_log` with: user_id, timestamp, feature type, tokens in, tokens out, estimated cost, model used
+
+**Cost monitoring dashboard (admin):**
+- Current week spend vs. ceiling
+- Per-user breakdown
+- Feature-type breakdown (which AI capability costs most)
+- Alert history
+
+**Rationale:** A $25/week aggregate ceiling is appropriate for a 10-learner pilot where AI is enabled for all users. The aggregate (not per-user) model simplifies management. Hard enforcement prevents billing surprises. The 80% alert gives the owner time to intervene before the ceiling is hit.
+
+**Consequences:**
+- Sprint 1 schema must include `ai_usage_log` table structure (even if AI features ship in Sprint 9–10, the log table is designed now)
+- AI Orchestration module (Sprint 9–10) must implement hard limit enforcement, not just logging
+- Admin dashboard (Sprint 11–12) must include cost monitoring view
+- DR-021 AI cost metric ("within pre-approved budget") is now operationalized: budget = $25/week aggregate
+- USMLE and AI Engineering are NOT in pilot scope; no content migration or AI tutor for those disciplines until separately authorized
 
 ---
 
