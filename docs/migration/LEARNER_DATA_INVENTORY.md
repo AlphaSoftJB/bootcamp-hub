@@ -1,225 +1,197 @@
 # Learner Data Inventory
 
-**Version:** 1.0  
+**Version:** 2.0  
 **Date:** 2026-11-05  
-**Status:** Draft — extracted from compiled bundle; pending validation against live browser storage  
-**Author:** Sprint 1 bundle analysis (Claude Sonnet 4.6, session https://claude.ai/code/session_01GrXQBHN1FfE3b1PuBWsGTt)  
-**Purpose:** Satisfies DR-019 precondition #1 — full inventory of every localStorage key used for progress before GistSync or any localStorage key may be removed.
+**Status:** Confirmed from source code (all three bootcamp `.tsx` files)  
+**Author:** Sprint 1 source analysis (Claude Sonnet 4.6, session https://claude.ai/code/session_01GrXQBHN1FfE3b1PuBWsGTt)  
+**Purpose:** Satisfies DR-019 precondition #1 — full inventory of every key used for learner progress before any key may be removed.
 
-> **Source:** All keys and formats below were reverse-engineered from the compiled bundle  
-> `assets/index-u5-2w4C2.js` (loaded by `index.html` at commit `138d6e7`). The source  
-> code has never been committed to the repository; this is the authoritative extraction.  
-> Validation against live browser storage is a required next step (see §7).
+> **Critical correction from v1.0:** The compiled bundle `assets/index-u5-2w4C2.js` is from a **different historical version** of the codebase, not the current bootcamps. The current bootcamp source was confirmed in `/mnt/user-data/attachments/` as the `.tsx` files provided at session start. This version documents storage as confirmed from those source files.
 
 ---
 
-## 1. Summary
+## 1. Architecture — Storage Mechanisms by Bootcamp
 
-| Category | Keys | Removable in Phase 1? |
-|---|---|---|
-| XP / Gamification | 1 key | No — migrate to backend first |
-| Lab / lesson completion | Dynamic (N keys) | No — migrate to backend first |
-| PBQ / drill scores | Dynamic (N keys) | No — migrate to backend first |
-| GistSync credentials | 2 keys | No — remove per DR-020 gate only |
-| UI preferences | 2 keys | Yes — these are non-progress |
-| Notes / project work | Dynamic (N keys) | No — migrate to backend first |
+| Bootcamp | File | Primary Storage | localStorage? | Notes |
+|---|---|---|---|---|
+| Cybersecurity | `Bootcamp.tsx` | `window.storage` (Claude artifact runtime) | **NO** | 0 localStorage calls in source |
+| IBM Python + ML | `Ibm_bootcamp_v4.tsx` | `localStorage` directly | **YES** | 3 keys confirmed |
+| AI Engineering | `Aibootcampv3.tsx` | `localStorage` + `window.storage` (dual) | **YES** | 4 keys confirmed |
+| Hub shell | `Index.html` | `localStorage` directly | **YES** | 1 key confirmed |
+
+> **Key finding:** The Cybersecurity bootcamp uses `window.storage` — the Claude artifact runtime storage API — not browser localStorage. This means its progress data is **not in the user's browser localStorage** and is **not accessible to the new StudyHub backend via a migration export tool**. Data is stored in Anthropic's artifact backend, tied to the artifact URL.
 
 ---
 
-## 2. Progress Keys (must NOT be removed before migration)
+## 2. Per-Bootcamp Key Details
 
-### 2.1 XP and Gamification
+### 2.1 Cybersecurity Bootcamp (`Bootcamp.tsx`)
 
-**Key:** `bootcamp_xp_v1`  
-**Constant:** `Uu` (minified)  
-**Type:** JSON object  
-**Format:**
+**Storage mechanism:** `window.storage.set()` / `window.storage.get()` — Claude artifact runtime API
+
+| Key | Type | Format | Description |
+|---|---|---|---|
+| `bootcamp_progress` | JSON string | `{"completed": {}, "fontSize": 15, "savedAt": "ISO8601"}` | All progress + font preference |
+
+**Completed object format:** `{ [dayId]: true }` — a plain object where each key is a day ID and value is `true` when complete. Example:
 ```json
 {
-  "totalXP": 0,
-  "streak": 0,
-  "lastActiveDate": null,
-  "achievements": []
+  "day-01": true,
+  "day-05": true,
+  "day-12": true
 }
 ```
-**Notes:** Read by `ty()` function at app load. This is the primary gamification state. `achievements` is an array — format of individual achievement objects TBD (requires live storage sample).
+
+**Migration implication:** This data is NOT in the user's browser localStorage. It lives in the Claude artifact runtime. No traditional browser-side export is possible. If StudyHub needs to import Cybersecurity progress, the user must manually identify completed days, or a migration page must call `window.storage.get("bootcamp_progress")` while rendered as a Claude artifact.
 
 ---
 
-### 2.2 Lab / Lesson Completion Flags
+### 2.2 IBM Python + ML Bootcamp (`Ibm_bootcamp_v4.tsx`)
 
-Three distinct key patterns exist for marking a lab or lesson day complete. All store the string `"1"` as the value.
+**Storage mechanism:** Direct `localStorage` calls
 
-**Pattern A — Generic lab completion:**  
-Key: `lab_done_${id}` where `id` = module or lesson identifier  
-Example: `lab_done_42`, `lab_done_intro-linux`
+| Key | Type | Format | Description |
+|---|---|---|---|
+| `ibc_done` | JSON string | Array of lesson IDs: `["lesson-1", "lesson-3", ...]` | Completed lesson IDs |
+| `ibc_quiz` | JSON string | Object of quiz answers: `{"q1": "B", "q2": "A", ...}` | All quiz answer state |
+| `ibc_fs` | JSON number (as string) | Integer 11–22 | Font size preference |
 
-**Pattern B — Cyber-specific lab completion:**  
-Key: `lab_done_cyber-${e.id}` where `e.id` = cyber module ID  
-Example: `lab_done_cyber-net-basics`
+**Source-confirmed:** Lines 3656+ of `Ibm_bootcamp_v4.tsx`
+```js
+localStorage.setItem('ibc_done', JSON.stringify(u));       // u = completed lessons array
+localStorage.setItem('ibc_quiz', JSON.stringify(quizAns)); // quizAns = answers object
+localStorage.setItem('ibc_fs', fontSize);                  // number 11-22
+```
 
-**Pattern C — Module + day completion:**  
-Key: `lab_done_${moduleId}-${day}` where `moduleId` = parent module ID, `day` = day number  
-Example: `lab_done_py-ml-1-3` (module `py-ml-1`, day `3`)
-
-**Pattern D — PBQ / drill lab key:**  
-Key: `lab_done_${labKey}` where `labKey` = PBQ drill compound key  
-Example: `lab_done_pbq-net-002`
-
-> **Important:** The exact ID namespaces (what values appear in `id`, `moduleId`, `day`) require  
-> inspection of the data files (e.g., `cyberLabsNew.js`, IBM Python/ML data files). These are  
-> compiled into the bundle. Full enumeration of all actual stored keys requires a live browser  
-> storage dump from an active learner session.
+**Migration implication:** Standard localStorage export is possible. These keys are stable and directly readable from the browser.
 
 ---
 
-### 2.3 PBQ / Practice Drill Scores
+### 2.3 AI Engineering Bootcamp (`Aibootcampv3.tsx`)
 
-**Key pattern:** `pbq_score_${e}` (returned by function `Qu(e)`)  
-**Constant:** `Qu` (minified function name)  
-**Type:** JSON object  
-**Format:**
+**Storage mechanism:** Dual — `localStorage` as fast cache + `window.storage` (Claude artifact runtime) as source of truth. On mount, `window.storage` overrides localStorage if present.
+
+| Key | Type | Format | Description |
+|---|---|---|---|
+| `aicamp_progress` | JSON string | `{ [moduleId + "-" + dayNum]: true }` | Per-day completion object |
+| `aicamp_dark` | JSON boolean | `true` / `false` | Dark mode preference |
+| `aicamp_font` | JSON number | Integer index into FONT_FAMILIES array | Font family preference |
+| `aicamp_size` | JSON number | Integer index into FONT_SIZES array | Font size preference |
+
+**Source-confirmed:** Lines 1006–1067 of `Aibootcampv3.tsx`
+```js
+const [dark, setDarkRaw]             = useState(() => loadLS("aicamp_dark",     true));
+const [progress, setProgressRaw]     = useState(() => loadLS("aicamp_progress", {}));
+const [fontFamilyIdx, setFontFamilyIdxRaw] = useState(() => loadLS("aicamp_font", 0));
+const [fontSizeIdx, setFontSizeIdxRaw]     = useState(() => loadLS("aicamp_size", 1));
+```
+
+**Progress key format:** `{ [mId + "-" + dNum]: true }` — module ID + hyphen + day number. Example:
 ```json
 {
-  "got": 0,
-  "total": 0
+  "m1-1": true,
+  "m1-2": true,
+  "m2-1": true
 }
 ```
-Where `got` = questions answered correctly, `total` = total questions in the drill.  
-`e` = the PBQ drill identifier (e.g., `"net-001"`, `"sec-firewall"` — exact values require data file inspection).
+
+**Migration implication:** localStorage values are readable directly. However, `window.storage` is the authoritative source — if a user's AI bootcamp data is in `window.storage` but their localStorage was cleared, the localStorage values would be stale/empty. The dual mechanism means: if localStorage shows progress AND window.storage confirms it, data is consistent. If only window.storage has it, localStorage was cleared.
 
 ---
 
-### 2.4 Lab Notes / Project Reflections
+### 2.4 Hub Shell (`Index.html`)
 
-**Key pattern:** Computed key (minified — exact function not yet isolated)  
-**Type:** JSON object  
-**Format:**
-```json
-{
-  "code": "",
-  "reflection": ""
-}
-```
-Where `code` = learner's code or lab work, `reflection` = learner's written reflection.  
-**Notes:** These store actual learner-authored text content, not just completion flags. Loss of this data is not acceptable.
+**Storage mechanism:** Direct `localStorage`
 
-> **Action required:** Isolate the key-generating function from the bundle to determine the exact  
-> key format for notes storage. This is blocked until source code is available or further bundle  
-> analysis is performed.
+| Key | Type | Format | Description |
+|---|---|---|---|
+| `hub_tab` | String | `"cyber"` \| `"ibm"` \| `"ai"` | Last active tab |
+
+**Migration implication:** UI preference only — no progress data. Safe to deprecate without migration.
 
 ---
 
-## 3. GistSync Keys (must NOT be removed before DR-020 gate)
+## 3. Summary Table — All Keys
 
-**Key 1:** `gist_token`  
-**Constant:** `Ds` (minified)  
-**Type:** String  
-**Format:** GitHub Personal Access Token (PAT) in plaintext  
-**Security note:** PAT stored in `localStorage` is accessible to any JavaScript on the page. This is a known security limitation of the current implementation. DR-020 specifies this must be removed — but only after the full DR-020 gate is satisfied.
+| Key | Bootcamp | Type | Contains Progress? | Migratable via localStorage? |
+|---|---|---|---|---|
+| `bootcamp_progress` | Cybersecurity | JSON/window.storage | **YES** | **NO — artifact runtime only** |
+| `ibc_done` | IBM | JSON/localStorage | **YES** | YES |
+| `ibc_quiz` | IBM | JSON/localStorage | YES (quiz state) | YES |
+| `ibc_fs` | IBM | number/localStorage | No (UI pref) | YES |
+| `aicamp_progress` | AI Engineering | JSON/localStorage+ws | **YES** | Partial (see §2.3) |
+| `aicamp_dark` | AI Engineering | boolean/localStorage | No (UI pref) | YES |
+| `aicamp_font` | AI Engineering | number/localStorage | No (UI pref) | YES |
+| `aicamp_size` | AI Engineering | number/localStorage | No (UI pref) | YES |
+| `hub_tab` | Hub shell | string/localStorage | No (UI pref) | YES (not needed) |
 
-**Key 2:** `gist_id`  
-**Constant:** `Es` (minified)  
-**Type:** String  
-**Format:** GitHub Gist ID (e.g., `"a1b2c3d4e5f6..."`)  
-**Notes:** The gist ID identifies the specific GitHub Gist used for cross-device sync. Loss of this key means the user loses their sync connection and would need to re-link.
+**Legacy keys from old compiled bundle** (NOT in current source — do NOT migrate):
 
----
+| Key | Status |
+|---|---|
+| `bootcamp_xp_v1` | Old version — not in current Bootcamp.tsx source |
+| `lab_done_*` | Old version — not in current Bootcamp.tsx source |
+| `pbq_score_*` | Old version — not in current Bootcamp.tsx source |
+| `gist_token` | Old version — not in current Bootcamp.tsx source |
+| `gist_id` | Old version — not in current Bootcamp.tsx source |
+| `bh_theme` | Old version — not in current Bootcamp.tsx source |
+| `bh_fontSize` | Old version — not in current Bootcamp.tsx source |
 
-## 4. UI Preference Keys (safe to migrate to Zustand + localStorage independently)
-
-These keys store non-progress UI preferences. They do not contain learner progress data and may be migrated to the new SPA's Zustand store independently of the backend migration.
-
-**Key:** `bh_theme`  
-**Type:** String  
-**Values:** `"dark"` | `"light"`  
-**Default behavior:** App defaults to dark if key is absent.  
-**Notes:** The bundle contains logic that removes stale values (`"sm"`, `"md"`, `"lg"` seen in this key indicate a schema version mismatch — the app cleans these up on load).
-
-**Key:** `bh_fontSize`  
-**Type:** String  
-**Values:** `"sm"` | `"md"` | `"lg"` (font size preference)  
-**Notes:** Stale values (`"sm"`, `"md"`, `"lg"` stored in `bh_theme`) are cleaned by checking this key — the app self-repairs on load if the wrong value type is found.
+> **Note:** These keys were identified from bundle analysis in v1.0 of this document. They are from a historical version of the codebase. The current source does not use them. If a user has these keys in their browser, they are residue from the old version. The current app would not read them.
 
 ---
 
-## 5. Keys Requiring Further Investigation
+## 4. Migration Planning
 
-The following were identified from bundle context but require further analysis:
+### 4.1 Backend schema implications
 
-| Key/Pattern | Status | Note |
+| Key | Backend target | Migration action |
 |---|---|---|
-| Notes/project key | Unknown exact format | Key-generating function not yet isolated; stores `{code, reflection}` |
-| Achievement objects in `bootcamp_xp_v1.achievements` | Partial | Array format confirmed; individual object schema unknown |
-| `idle` | Unclear | Appears as a state string; may not be a standalone localStorage key |
+| `ibc_done` | `lesson_completions(user_id, course_id, lesson_id, completed_at)` | Export array, insert one row per lesson ID |
+| `ibc_quiz` | `quiz_attempts(user_id, question_id, selected_answer, answered_at)` | Export object, insert one row per question |
+| `aicamp_progress` | `lesson_completions(user_id, course_id, lesson_id, completed_at)` | Export object keys, map `mId-dNum` to lesson IDs |
+| `bootcamp_progress` | `lesson_completions` — same table | Requires artifact-runtime export (special case) |
+| `ibc_fs`, `aicamp_dark`, `aicamp_font`, `aicamp_size` | `user_preferences` or Zustand/localStorage | UI prefs — may carry forward in new SPA |
+| `hub_tab` | Not migrated | Deprecated when hub is replaced |
+
+### 4.2 Cybersecurity progress migration (special case)
+
+Since `bootcamp_progress` lives in Claude artifact runtime (`window.storage`), not browser localStorage, standard migration approaches do not apply. Options:
+
+1. **Accept progress loss** — pilot users start fresh on the new platform. Acceptable if pilot starts with new learners.
+2. **In-place export page** — build a small Claude artifact that calls `window.storage.get("bootcamp_progress")` and displays the result for the user to copy. Manual migration.
+3. **No migration needed** — if the Cybersecurity bootcamp remains operational (which it must per DR-023), and learners access the new StudyHub independently, no migration is required until the bootcamp is retired (which requires owner authorization per the replacement approval gate).
+
+> **Recommended:** Option 3. Per DR-023, the existing bootcamp remains fully operational during development. Progress in the existing bootcamp stays in the existing bootcamp. New progress in StudyHub is tracked by the new backend. Migration is only needed at bootcamp retirement, which requires a separate owner authorization.
 
 ---
 
-## 6. Data Formats for Migration Planning
+## 5. DR-019 Gate Status
 
-### 6.1 Backend schema implications
+| Precondition | Status |
+|---|---|
+| #1 — Full key inventory documented | **COMPLETE** (this document v2.0) |
+| #2 — Export tool built and tested | **NOT STARTED** — deferred; not needed for Sprint 1 |
+| #3 — Live storage dump validated | **NOT STARTED** — deferred; not needed for Sprint 1 |
+| #4 — Progress backed up | **NOT STARTED** — deferred |
 
-| localStorage Key | Backend target | Migration action |
-|---|---|---|
-| `bootcamp_xp_v1` | `user_xp` table (or `progress_snapshots`) | Export, transform, insert on first login |
-| `lab_done_*` | `lesson_completions` table | Enumerate all keys, map to content IDs, insert per user |
-| `pbq_score_*` | `assessment_attempts` table | Export scores, map PBQ IDs to assessment IDs |
-| Notes/reflections | `lab_submissions` or `notes` table | Export text content, preserve per user |
-| `gist_token` | Deleted — not migrated | Remove after DR-020 gate |
-| `gist_id` | Deleted — not migrated | Remove after DR-020 gate |
-| `bh_theme` | UI preference in Zustand | Carry forward in new SPA localStorage |
-| `bh_fontSize` | UI preference in Zustand | Carry forward in new SPA localStorage |
+> GistSync removal (DR-020) is NOT a Sprint 1 task. DR-020 gate requires all DR-019 preconditions. Sprint 1 does NOT touch existing bootcamp files.
 
 ---
 
-## 7. Required Validation Steps
+## 6. What Sprint 1 Does NOT Touch
 
-Before GistSync or any progress key may be removed (DR-019 precondition #1 is this document; preconditions #2 and #3 require the following):
+Per Sprint 1 scope and DR-023 (existing bootcamp protection):
 
-- [ ] **Live storage dump:** Export actual localStorage contents from a browser session with real learner data. Confirm all key patterns above against real data.
-- [ ] **Enumerate all `lab_done_*` keys:** A live session will show every actual `lab_done_*` key name, confirming the namespace values used by the data files.
-- [ ] **Identify notes key format:** Inspect data with real lab work completed to find the exact key name for `{code, reflection}` storage.
-- [ ] **Enumerate `achievements` array:** Confirm the shape of individual achievement objects in `bootcamp_xp_v1`.
-- [ ] **Source code review:** Once source is available (see §8), confirm all key patterns against `src/context/` files.
+- `Bootcamp.tsx` — **NOT modified**
+- `Ibm_bootcamp_v4.tsx` — **NOT modified**
+- `Aibootcampv3.tsx` — **NOT modified**
+- `Index.html` — **NOT modified**
+- Any localStorage key listed above — **NOT removed or modified**
+- `window.storage` data — **NOT accessed**
 
----
-
-## 8. Source Code Status
-
-> **Critical:** The React source code (`src/`, `vite.config.ts`, `package.json`, component files,  
-> context providers, data files) has never been committed to the `AlphaSoftJB/bootcamp-hub`  
-> repository in its 47-commit history. The repository contains only compiled build output.
->
-> This inventory was produced entirely from bundle analysis. While it is believed to be complete  
-> and accurate, **source code review would confirm and may reveal additional keys or patterns.**
->
-> Sprint 1 implementation is currently blocked pending confirmation of source code location  
-> (see Sprint 1 blocker report).
+The new StudyHub SPA is a completely separate application at new routes. Zero interference with existing bootcamp storage.
 
 ---
 
-## 9. Export Tool Specification
-
-DR-019 precondition #2 requires a learner data export tool. The tool must:
-
-1. Read all keys identified in §2 and §3 from the user's browser `localStorage`
-2. Output a JSON file with structure:
-   ```json
-   {
-     "exported_at": "ISO8601 timestamp",
-     "xp": { "totalXP": 0, "streak": 0, "lastActiveDate": null, "achievements": [] },
-     "completions": { "lab_done_key_1": "1", "lab_done_key_2": "1" },
-     "pbq_scores": { "pbq_score_net-001": { "got": 0, "total": 0 } },
-     "notes": { "<notes_key>": { "code": "", "reflection": "" } },
-     "gist_id": "...",
-     "exported_app_version": "bootcamp_xp_v1"
-   }
-   ```
-3. Provide this file for the user to save before any migration or key removal
-4. Must NOT include `gist_token` in export (security — PAT must not be exported)
-
-**Implementation:** A small standalone HTML page or browser console snippet is sufficient. Full backend integration not required for the export tool — the export is a one-time migration aid.
-
----
-
-*This document satisfies DR-019 precondition #1. See DR-019 and DR-020 in the Decision Record for the full gate requirements before GistSync removal may proceed.*
+*This document satisfies DR-019 precondition #1. v2.0 supersedes v1.0 entirely — the v1.0 bundle analysis was from a different historical version of the application. See DR-019 and DR-020 in the Decision Record for full gate requirements.*
