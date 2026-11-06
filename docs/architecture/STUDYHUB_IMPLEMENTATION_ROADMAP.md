@@ -1,12 +1,52 @@
 # StudyHub — Implementation Roadmap
 
-**Version:** 1.1  
+**Version:** 1.2  
 **Date:** 2026-11-05  
 **Status:** Phase 0 complete — Phase 1 approved with corrections. Implementation may begin after remaining open decisions are answered.  
 **Author:** Phase 0 Audit (Claude Sonnet 4.6, session https://claude.ai/code/session_01GrXQBHN1FfE3b1PuBWsGTt)  
 **Changelog:**
 - v1.0 (2026-11-04): Initial Phase 0 roadmap
 - v1.1 (2026-11-05): Owner approval corrections applied — Phase 0 marked complete; Phase 1 approved; repo rename timing corrected; learner data preservation added to Sprint 1–2; mastery algorithm added to Sprint 7–8; auth security scope expanded; content admin API requirement added; test acceptance criteria replace raw test counts; PWA clarified; pilot success criteria added to Sprint 11–12; 90-day references removed; cyberLabsNew.js investigation added
+- v1.2 (2026-11-05): DR-023 parallel development constraint added — existing bootcamp protection operating strategy, sprint reporting checklist, and replacement approval gate documented throughout
+
+---
+
+## 0. Parallel Development Operating Constraint (DR-023)
+
+**Non-negotiable. Takes precedence over all implementation convenience.**
+
+The existing `bootcamp-hub` application is in active use for certification exam preparation. It must remain fully operational throughout the entire StudyHub development process. StudyHub is built alongside the existing application — not at its expense.
+
+### What this means for every sprint
+
+- **Additive only in early sprints:** Sprint 1–6 work is strictly additive. New backend directories, new React routes, new context providers are introduced without removing or modifying existing ones.
+- **No existing file modifications:** `cyberDays.js`, `ibmCurriculum.js`, `aiMonths.js`, `cyberLabsNew.js`, and all other existing data files are read-only until the replacement approval gate is passed.
+- **No localStorage key changes:** Existing progress keys are not renamed, removed, or reformatted while the existing application is active.
+- **GistSync stays:** `GistSyncContext` is not removed until the replacement approval gate is passed (not Sprint 5–6 as originally planned).
+- **Separate environments:** The new Spring Boot backend runs locally alongside the existing Vite dev server. They share no ports, no databases, no localStorage keys.
+- **GitHub Pages stays live:** The existing GitHub Pages deployment is not redirected, renamed, or disabled during development.
+
+### Replacement approval gate
+
+The existing bootcamp is NOT retired until the owner confirms all five conditions in writing:
+1. StudyHub passes all DR-022 critical workflow acceptance tests
+2. All existing curriculum is migrated and independently verified in StudyHub
+3. StudyHub is deployed and independently accessible at its own URL
+4. A tested rollback procedure has been executed on staging
+5. The owner has personally verified the new learning experience and issued explicit authorization
+
+### Sprint reporting requirement
+
+Every sprint report includes a **Bootcamp Protection Checklist** confirming:
+- Existing bootcamp was not affected
+- Lessons, quizzes, labs, and exams remain fully operational
+- No existing content or learner data was modified
+- No existing localStorage keys were changed
+- Regression verification method used (at minimum: manual smoke test of one full study session)
+
+If any check fails, work stops and the owner is notified before proceeding.
+
+Full policy: `STUDYHUB_DECISION_RECORD.md` → DR-023.
 
 ---
 
@@ -101,9 +141,11 @@ Items that can be deferred to Sprint 11 planning (but should be answered by then
 
 #### Sprint 1–2: Foundation (Weeks 1–4) — ~65 hours
 
-**Goal:** Working project skeleton, local dev environment, first API endpoint. Learner data preservation documented.
+**Goal:** Working project skeleton, local dev environment, first API endpoint. Learner data preservation documented. Existing bootcamp untouched.
 
 **Note on repository rename:** The repository is NOT renamed in this sprint. Rename is deferred to Sprint 11–12 or post-pilot (see DR-003 v1.1).
+
+**DR-023 constraint:** All work this sprint is additive. No existing routes, components, contexts, data files, or localStorage keys are modified. The new Spring Boot project lives in a new directory (e.g. `studyhub-backend/`). New React scaffolding is introduced at new routes only.
 
 Tasks:
 - [ ] Initialize Spring Boot project (Spring Initializr: Web, Security, Data JPA, MySQL, Validation, Actuator)
@@ -163,9 +205,9 @@ Checkpoint: Can browse disciplines and read a lesson; cyberLabsNew.js inspection
 
 #### Sprint 5–6: Progress Domain (Weeks 9–12) — ~50 hours
 
-**Goal:** Learning state tracked on the backend; XP and streak server-authoritative. GistSync removed (after data preservation preconditions met).
+**Goal:** Learning state tracked on the backend; XP and streak server-authoritative. Existing bootcamp progress untouched.
 
-**Note on GistSync removal:** Remove GistSync only after confirming the learner data export process from Sprint 1–2 is complete and any affected users have been notified (see DR-020 v1.1).
+**DR-023 constraint:** GistSync is NOT removed in this sprint. The existing `GistSyncContext` remains functional throughout development. It is removed only after the replacement approval gate is passed (see DR-023 and DR-020 v1.1). New progress endpoints run in parallel with the existing localStorage/GistSync system — they do not replace it yet.
 
 Tasks:
 - [ ] MySQL schema: user_lesson_progress, user_xp, user_goals
@@ -178,8 +220,8 @@ Tasks:
 - [ ] Frontend: Home dashboard (goal card, resume card, discipline cards, XP/streak display)
 - [ ] Frontend: My Progress page (mastery chart by domain, streak calendar, XP history)
 - [ ] Frontend: XPBar updated to fetch from backend (not localStorage)
-- [ ] Remove GistSyncContext (after preconditions met per DR-020 v1.1)
-- [ ] Remove Gist sync from SettingsPanel
+- [ ] ~~Remove GistSyncContext~~ — deferred to replacement approval gate (DR-023); GistSync remains active
+- [ ] ~~Remove Gist sync from SettingsPanel~~ — deferred to replacement approval gate (DR-023)
 
 Estimate: ~50 hours  
 Checkpoint: Learning progress tracked on server; Home dashboard shows real data; GistSync removed
@@ -245,6 +287,8 @@ Checkpoint: AI Tutor functional in lesson view; explanations working for wrong a
 
 **Note on repository rename:** Rename may occur in this sprint if: (a) the deployment is verified, and (b) the owner approves. It is not a launch prerequisite.
 
+**DR-023 replacement approval gate:** Before retiring, redirecting, or disabling the existing bootcamp, all five gate conditions must be confirmed in writing by the owner. This includes the owner personally verifying the new learning experience. No single condition is waivable. The gate is confirmed at the end of this sprint, not assumed.
+
 Tasks:
 - [ ] Deploy backend to production (Docker on chosen VPS/PaaS — DR-OPEN-003)
 - [ ] Deploy frontend to production (chosen CDN/static host — DR-OPEN-004)
@@ -264,6 +308,8 @@ Tasks:
 - [ ] Monitor: AI usage costs against budget (DR-OPEN-010), API latency, error rates
 - [ ] PWA implementation: only if separately approved by owner after reviewing pilot readiness (see DR-014 v1.1)
 - [ ] Repository rename (only if deployment verified + owner approves — see DR-003 v1.1)
+- [ ] **DR-023 replacement gate review:** confirm all five gate conditions are met; present to owner for written authorization before any existing bootcamp retirement
+- [ ] **GistSync removal** (only after owner issues replacement gate authorization): remove `GistSyncContext`, remove Gist sync from SettingsPanel, clear `gist_token` localStorage key
 
 Estimate: ~60 hours (increased from 55 to account for expanded testing scope and pilot metrics)  
 Checkpoint: All DR-022 acceptance criteria passing; pilot live with real users

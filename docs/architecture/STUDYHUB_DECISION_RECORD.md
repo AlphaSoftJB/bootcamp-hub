@@ -7,6 +7,7 @@
 **Changelog:**
 - v1.0 (2026-11-04): Initial Phase 0 decisions
 - v1.1 (2026-11-05): Owner approval corrections applied — DR-003, DR-009, DR-013, DR-014, DR-019, DR-020 revised; DR-OPEN-001 resolved; DR-OPEN-008 reclassified; new DR-021 (pilot success criteria) and DR-022 (testing acceptance criteria) added
+- v1.2 (2026-11-05): DR-023 added — existing bootcamp protection and parallel development constraint; supersedes any roadmap implication that the existing application would be disrupted during development
 
 ---
 
@@ -556,6 +557,113 @@ These are explicitly unresolved. Items marked **[Blocks Sprint 1]** must be answ
 | DR-OPEN-008 | `cyberLabsNew.js`: integrate into Cybersecurity content or discard? | **Requires investigation first** — 72 entries must be inspected and reported before a decision is made. This is a pre-decision research task, not a blocked decision. |
 | DR-OPEN-009 | AI Engineering curriculum mapping: who does the structural mapping work, and by when? | AI Engineering content cannot migrate until this is done |
 | DR-OPEN-010 | Pilot size: how many invited learners, which disciplines at launch, and what is the weekly AI cost budget per user? | Informs infrastructure sizing, content completeness bar, and DR-021 cost threshold |
+
+---
+
+## 7. Operating Constraints
+
+### DR-023 — Existing Bootcamp Protection and Parallel Development
+**Status:** Confirmed — Non-negotiable constraint  
+**Date confirmed:** 2026-11-05  
+**Priority:** Takes precedence over implementation convenience and the original migration schedule
+
+**Decision:** The existing `bootcamp-hub` application must remain fully operational throughout the entire StudyHub development and pilot preparation process. StudyHub is developed alongside the existing application, not at its expense. The owner is currently using the existing application to prepare for active certification exams and must be able to continue doing so without interruption.
+
+---
+
+#### What must remain intact at all times
+
+The following must remain operational and unmodified until the owner explicitly authorizes the transition (see replacement approval gate below):
+
+- All existing cybersecurity and IBM Python+ML lessons, notes, quizzes, exams, labs, PBQs, and PT labs
+- All existing routes (`/cyber`, `/ibm`, `/ai`, `/hub` and their sub-routes)
+- All existing React components, context providers, and data files
+- Existing localStorage progress (lesson completion flags, XP, streaks, lab/PBQ completion, exam attempts, goals)
+- GistSync functionality (`GistSyncContext`) — do not remove or disable until transition is authorized
+- Existing navigation, font size controls, theme preferences
+- The GitHub Pages deployment at its current URL
+
+---
+
+#### Operating strategy
+
+**1. Treat the existing application as the operational baseline.**  
+Every sprint begins with the existing application working. Every sprint ends with the existing application still working. This is not aspirational — it is verified (see Sprint Reporting, below).
+
+**2. Build StudyHub alongside, not on top of.**  
+- Sprint 1 creates a new Spring Boot backend in a separate directory, not inside the existing React project
+- New frontend routes, components, and state management are introduced incrementally without removing existing ones
+- New state management (TanStack Query, Zustand) is added alongside existing contexts, not as a replacement, until transition is authorized
+- Separate local development environments: existing bootcamp runs independently of the new backend
+
+**3. Isolate all shared-state changes.**  
+- Do not modify localStorage key names or formats used by the existing application
+- Do not alter existing data files (`cyberDays.js`, `ibmCurriculum.js`, `aiMonths.js`, `cyberLabsNew.js`, etc.)
+- Do not change existing context providers until their replacement is fully tested and transition authorized
+- Do not introduce changes that could corrupt existing learner progress
+
+**4. Maintain two operational paths simultaneously.**  
+| Path | State | Owner access |
+|------|-------|--------------|
+| Existing bootcamp (GitHub Pages) | Always operational | Available for study at all times |
+| StudyHub dev/staging | Incrementally built | Available for review and testing |
+
+---
+
+#### Replacement approval gate
+
+The existing bootcamp must NOT be disabled, redirected, renamed, or retired until ALL of the following conditions are confirmed in writing by the owner:
+
+1. StudyHub has passed all DR-022 critical workflow acceptance tests
+2. All existing curriculum content (Cyber + IBM) has been migrated and validated in StudyHub (lesson counts, quiz counts, lab content, assessment results verified)
+3. StudyHub is deployed to production and independently accessible at its own URL
+4. A tested rollback procedure exists and has been executed in a staging environment
+5. The owner has personally verified the new learning experience end-to-end
+6. The owner has issued explicit written authorization to retire the existing bootcamp
+
+No single condition is waivable. The gate is all-or-nothing.
+
+---
+
+#### Sprint reporting requirement
+
+Every sprint report must include a **Bootcamp Protection Checklist** section with explicit confirmation of:
+
+| Check | Expected answer |
+|-------|----------------|
+| Was the existing bootcamp affected by any change this sprint? | No (or: Yes — [describe what and why, with owner approval reference]) |
+| Is the existing study functionality (lessons, quizzes, labs, exams) fully operational? | Yes |
+| Was any existing content or learner data modified or deleted? | No |
+| Were any existing localStorage keys modified or removed? | No |
+| Were any existing data files (`cyberDays.js`, `ibmCurriculum.js`, etc.) changed? | No |
+| Regression verification method used: | [e.g. manual smoke test: loaded Cyber Day 1, completed a quiz, verified XP updated] |
+
+If any check cannot be answered with the expected answer, work stops and the owner is notified before proceeding.
+
+---
+
+#### If a planned change risks disrupting the existing bootcamp
+
+**Stop. Do not proceed. Request approval.**
+
+The sprint report for that sprint must describe:
+- What change was planned
+- Why it risks disrupting the existing application
+- What alternatives were considered
+- What approval is requested
+
+Owner approval is required in writing before any change that could affect the existing bootcamp is implemented.
+
+---
+
+**Rationale:** The owner has active certification exams for which the existing bootcamp is the primary study tool. A development process that disrupts active study is not acceptable regardless of the development benefits. StudyHub adds capability; it does not subtract existing capability during the transition.
+
+**Consequences:**
+- Sprint 1 creates a new Spring Boot project directory and new React routes; it does not modify existing routes or components
+- The `GistSyncContext` removal in DR-020 is deferred to after the replacement approval gate, not Sprint 5–6
+- Sprint estimates already account for the parallel-development overhead (separate environments, regression checks)
+- Any sprint task that is found to require modifying the existing application unexpectedly is flagged, re-scoped, or deferred
+- The roadmap sprint order is designed so that early sprints (1–6) are purely additive; structural replacement begins only in later sprints after replacement functionality is verified
 
 ---
 
